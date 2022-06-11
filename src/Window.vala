@@ -43,6 +43,7 @@ namespace Agenda {
         private Gtk.ScrolledWindow scrolled_window;
         private Gtk.Entry task_entry;
         private HistoryList history_list;
+        private Gtk.Button removeCompletedTasksButton;
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
@@ -71,15 +72,15 @@ namespace Agenda {
             header.get_style_context ().add_class (Gtk.STYLE_CLASS_FLAT);
             this.set_titlebar (header);
 
-            var button = new Gtk.Button.from_icon_name ("user-trash-symbolic", Gtk.IconSize.BUTTON);
-            button.clicked.connect (() => {
+            removeCompletedTasksButton = new Gtk.Button.from_icon_name ("user-trash-symbolic", Gtk.IconSize.BUTTON);
+            removeCompletedTasksButton.clicked.connect (() => {
                 // Remove completed tasks
                 if (task_list != null) {
                      task_list.remove_completed_tasks();
-                }
-                stdout.printf ("You deleted completed tasks\n");
+                }                
+                removeCompletedTasksButton.set_sensitive(false);
             });
-            header.pack_start(button);
+            header.pack_end(removeCompletedTasksButton);
 
             // Set up geometry
             Gdk.Geometry geo = Gdk.Geometry ();
@@ -203,6 +204,7 @@ namespace Agenda {
 
             task_list.list_changed.connect (() => {
                 backend.save_tasks (task_list.get_all_tasks ());
+                removeCompletedTasksButton.set_sensitive(task_list.hasCompletedTasks());
                 update ();
             });
 

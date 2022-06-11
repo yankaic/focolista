@@ -113,6 +113,19 @@ namespace Agenda {
             list_changed ();
         }
 
+        public bool hasCompletedTasks(){
+            Gtk.TreeIter iter;
+            bool valid = get_iter_first (out iter);
+            while (valid) {
+                Task task = get_task (iter);
+                if (task.complete) {
+                    return true;
+                }
+                valid = iter_next (ref iter);
+            }
+            return false;
+        }
+
         public void clear_undo () {
             undo_list = new TaskListHistory ();
             undo_list.add (this);
