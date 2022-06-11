@@ -30,7 +30,6 @@ namespace Agenda {
             TEXT,
             STRIKETHROUGH,
             DELETE,
-            DRAGHANDLE,
             ID,
             N_COLUMNS
         }
@@ -83,7 +82,6 @@ namespace Agenda {
                  Columns.TEXT, task.text,
                  Columns.STRIKETHROUGH, task.complete,
                  Columns.DELETE, "edit-delete-symbolic",
-                 Columns.DRAGHANDLE, "view-list-symbolic",
                  Columns.ID, task.id);
 
             list_changed ();
@@ -244,7 +242,6 @@ namespace Agenda {
                      Columns.TEXT, task.text,
                      Columns.STRIKETHROUGH, task.complete,
                      Columns.DELETE, "edit-delete-symbolic",
-                     Columns.DRAGHANDLE, "view-list-symbolic",
                      Columns.ID, task.id);
             }
         }
