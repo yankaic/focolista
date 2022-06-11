@@ -44,6 +44,7 @@ namespace Agenda {
         private Gtk.Entry task_entry;
         private HistoryList history_list;
         private Gtk.Button removeCompletedTasksButton;
+        private Gtk.Button sortButton;
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
@@ -81,6 +82,14 @@ namespace Agenda {
                 removeCompletedTasksButton.set_sensitive(false);
             });
             header.pack_end(removeCompletedTasksButton);
+
+            sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic", Gtk.IconSize.BUTTON);
+            sortButton.clicked.connect (() => {
+                if (task_list != null) {
+                    task_list.sort_tasks ();
+                }                
+            });
+            header.pack_end(sortButton);
 
             // Set up geometry
             Gdk.Geometry geo = Gdk.Geometry ();
@@ -204,7 +213,9 @@ namespace Agenda {
 
             task_list.list_changed.connect (() => {
                 backend.save_tasks (task_list.get_all_tasks ());
-                removeCompletedTasksButton.set_sensitive(task_list.hasCompletedTasks());
+                bool hasCompletedTasks = task_list.hasCompletedTasks();
+                removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
+                sortButton.set_sensitive(hasCompletedTasks);
                 update ();
             });
 
@@ -244,7 +255,6 @@ namespace Agenda {
             task_list.append_task (task);
             history_list.add_item (task.text);
             // When adding a new task rearrange the tasks
-            task_list.sort_tasks ();
             task_entry.text = "";
         }
 
