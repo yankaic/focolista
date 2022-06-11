@@ -79,7 +79,6 @@ namespace Agenda {
                 if (task_list != null) {
                      task_list.remove_completed_tasks();
                 }                
-                removeCompletedTasksButton.set_sensitive(false);
             });
             header.pack_end(removeCompletedTasksButton);
 
@@ -129,6 +128,10 @@ namespace Agenda {
             app_quit_action.activate.connect (this.close);
             undo_action.activate.connect (task_list.undo);
             redo_action.activate.connect (task_list.redo);
+
+            bool hasCompletedTasks = task_list.hasCompletedTasks();
+            removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
+            sortButton.set_sensitive(hasCompletedTasks);
         }
 
         private void load_list () {
