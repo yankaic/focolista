@@ -88,7 +88,7 @@ namespace Agenda {
                     task_list.sort_tasks ();
                 }                
             });
-            header.pack_end(sortButton);
+            //header.pack_end(sortButton);
 
             // Set up geometry
             Gdk.Geometry geo = Gdk.Geometry ();
@@ -131,7 +131,7 @@ namespace Agenda {
 
             bool hasCompletedTasks = task_list.hasCompletedTasks();
             removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
-            sortButton.set_sensitive(hasCompletedTasks);
+            sortButton.set_sensitive(false);
         }
 
         private void load_list () {
@@ -218,7 +218,7 @@ namespace Agenda {
                 backend.save_tasks (task_list.get_all_tasks ());
                 bool hasCompletedTasks = task_list.hasCompletedTasks();
                 removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
-                sortButton.set_sensitive(hasCompletedTasks);
+                //sortButton.set_sensitive(hasCompletedTasks);
                 update ();
             });
 
