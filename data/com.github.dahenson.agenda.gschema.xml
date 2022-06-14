@@ -9,5 +9,8 @@
         <key name="first-time" type="b">
             <default>true</default>
         </key>
+        <key name="task-sequence" type="i">
+            <default>0</default>
+        </key>
 	</schema>
 </schemalist>
