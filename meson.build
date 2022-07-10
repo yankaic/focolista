@@ -9,6 +9,7 @@ gobject = dependency('gobject-2.0')
 gtk     = dependency('gtk+-3.0')
 granite = dependency('granite')
 gee     = dependency('gee-0.8')
+sqlite  =    dependency('sqlite3')
 
 gnome = import('gnome')
 i18n = import('i18n')
@@ -58,7 +59,8 @@ agenda_client_sources = files(
 agenda_deps = [
     glib,
     gtk,
-    granite
+    granite,
+    sqlite
 ]
 
 executable(

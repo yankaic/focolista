@@ -18,6 +18,7 @@
     along with Agenda.  If not, see <http://www.gnu.org/licenses/>.
 
 ***/
+using Gee;
 
 namespace Agenda {
 
@@ -46,8 +47,11 @@ namespace Agenda {
         private Gtk.Button removeCompletedTasksButton;
         private Gtk.Button sortButton;
 
+        private HashMap<int, Task> taskMap;
+
         public AgendaWindow (Agenda app) {
             Object (application: app);
+            taskMap = new HashMap<int, Task> ();
 
             var window_close_action = new SimpleAction ("close", null);
             var app_quit_action = new SimpleAction ("quit", null);
@@ -137,12 +141,13 @@ namespace Agenda {
         private void load_list () {
             task_list.disable_undo_recording ();
 
-            var tasks = backend.load_tasks ();
+            var tasks = backend.list ();
             foreach (Task task in tasks) {
                 task_list.append_task (task);
+                taskMap.set(task.id, task);
             }
 
-            var history = backend.load_history ();
+            string[] history = {};
             if (privacy_mode_off ()) {
                 foreach (string line in history) {
                     history_list.add_item (line);
@@ -215,10 +220,41 @@ namespace Agenda {
             });
 
             task_list.list_changed.connect (() => {
-                backend.save_tasks (task_list.get_all_tasks ());
                 bool hasCompletedTasks = task_list.hasCompletedTasks();
                 removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
                 //sortButton.set_sensitive(hasCompletedTasks);
+                update ();
+            });
+
+            task_list.task_edited.connect ((task) => {
+                taskMap.get(task.id).text = task.text;
+                backend.update(task);
+                update ();
+            });
+
+            task_list.task_toggled.connect ((task) => {
+                backend.mark(task);
+                taskMap.get(task.id).complete = task.complete;
+                update ();
+            });
+
+            task_list.task_removed.connect ((task) => {
+                taskMap.unset(task.id);
+                backend.drop(task);
+                update ();
+            });
+
+            task_list.positions_changed.connect (() => {
+                Task[] tasks = task_list.get_all_tasks();
+                int position = 1;
+                foreach (Task viewTask in tasks) {
+                    Task task = taskMap.get(viewTask.id);
+                    if (task.position != position){
+                        task.position = position;
+                        backend.reorder(task);
+                    }
+                    position++;
+                }
                 update ();
             });
 
@@ -250,15 +286,20 @@ namespace Agenda {
         }
 
         public void append_task () {
+            int id = Agenda.settings.get_int ("task-sequence");
             Task task = new Task.with_attributes (
-                "",
+                id,
                 false,
                 task_entry.text);
+            task.position = taskMap.size;
 
             task_list.append_task (task);
             history_list.add_item (task.text);
             // When adding a new task rearrange the tasks
             task_entry.text = "";
+            Agenda.settings.set_value ("task-sequence", ++id);
+            backend.create(task);
+            update ();
         }
 
         public bool privacy_mode_off () {
@@ -296,8 +337,6 @@ namespace Agenda {
         }
 
         public bool main_quit () {
-            backend.save_tasks (task_list.get_all_tasks ());
-            backend.save_history (history_list.get_all_tasks ());
             this.destroy ();
 
             return false;

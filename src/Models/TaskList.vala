@@ -24,6 +24,10 @@ namespace Agenda {
     public class TaskList : Gtk.ListStore {
 
         public signal void list_changed ();
+        public signal void task_toggled (Task task);
+        public signal void task_edited (Task task);
+        public signal void task_removed (Task task);
+        public signal void positions_changed ();
 
         public enum Columns {
             TOGGLE,
@@ -54,7 +58,7 @@ namespace Agenda {
                 typeof (string),
                 typeof (bool),
                 typeof (string),
-                typeof (string),
+                typeof (int),
                 typeof (string)
             };
 
@@ -72,19 +76,14 @@ namespace Agenda {
         public void append_task (Task task) {
             Gtk.TreeIter iter;
 
-            if (task.id == "") {
-                task.id = Uuid.string_random ();
-            }
-
             append (out iter);
+
             set (iter,
                  Columns.TOGGLE, task.complete,
                  Columns.TEXT, task.text,
                  Columns.STRIKETHROUGH, task.complete,
                  Columns.DELETE, "edit-delete-symbolic",
                  Columns.ID, task.id);
-
-            list_changed ();
         }
         /*
          *  Sort the tasks so finished tasks are at bottom
@@ -134,12 +133,12 @@ namespace Agenda {
          *
          * @param id The id of the task
          */
-        public bool contains (string id) {
+        public bool contains (int id) {
             Gtk.TreeIter iter;
             bool valid = get_iter_first (out iter);
 
             while (valid) {
-                string list_id;
+                int list_id;
                 get (iter, TaskList.Columns.ID, out list_id);
 
                 if (list_id == id) {
@@ -193,7 +192,7 @@ namespace Agenda {
         }
 
         public Task get_task (Gtk.TreeIter iter) {
-            string id;
+            int id;
             bool complete;
             string text;
 
@@ -205,13 +204,13 @@ namespace Agenda {
             return new Task.with_attributes (id, complete, text);
         }
 
-        public bool has_duplicates_of (string id) {
+        public bool has_duplicates_of (int id) {
             Gtk.TreeIter iter;
             bool valid = get_iter_first (out iter);
             int count = 0;
 
             while (valid) {
-                string list_id;
+                int list_id;
                 get (iter, TaskList.Columns.ID, out list_id);
 
                 if (list_id == id)
@@ -247,12 +246,11 @@ namespace Agenda {
         }
 
         private void on_row_changed (Gtk.TreePath path, Gtk.TreeIter iter) {
-            string list_id;
+            int list_id;
 
             get (iter, TaskList.Columns.ID, out list_id);
             if (record_undo_enable && !has_duplicates_of (list_id)) {
                 undo_list.add (this);
-                list_changed ();
             }
         }
 
@@ -263,16 +261,19 @@ namespace Agenda {
              */
             if (record_undo_enable)
                 undo_list.add (this);
-                list_changed ();
+                positions_changed ();
         }
 
         public bool remove_task (Gtk.TreePath path) {
             Gtk.TreeIter iter;
-            string id;
+            int id;
             string text;
+
 
             if (get_iter (out iter, path)) {
                 get (iter, Columns.ID, out id, Columns.TEXT, out text);
+
+                task_removed(get_task(iter));
 #if VALA_0_36
                 remove (ref iter);
 #else
@@ -307,7 +308,7 @@ namespace Agenda {
                 }
             }
 
-            list_changed ();
+            positions_changed ();
         }
 
         public void redo () {
@@ -342,6 +343,7 @@ namespace Agenda {
 
             get_iter (out iter, tree_path);
             set (iter, TaskList.Columns.TEXT, text);
+            task_edited (get_task (iter));
         }
 
         public void toggle_task (Gtk.TreePath path) {
@@ -355,7 +357,7 @@ namespace Agenda {
                 TaskList.Columns.TOGGLE, !toggle,
                 TaskList.Columns.STRIKETHROUGH, !toggle);
 
-            list_changed ();
+            task_toggled (get_task (iter));
         }
     }
 }

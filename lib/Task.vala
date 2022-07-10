@@ -22,11 +22,11 @@
 namespace Agenda {
 
     public class Task : GLib.Object {
-        public string id { get; set; default = ""; }
+        public int id { get; set; default = 0; }
         public bool complete { get; set; default = false; }
         public string text { get; set; default = ""; }
 
-        public Task.with_attributes (string id, bool complete, string text) {
+        public Task.with_attributes (int id, bool complete, string text) {
             Object (
                 id: id,
                 complete: complete,

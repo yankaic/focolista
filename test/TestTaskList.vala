@@ -43,8 +43,8 @@ public class TaskListTests : Gee.TestCase {
     public override void set_up () {
         test_list = new Agenda.TaskList ();
 
-        test_task_1 = new Agenda.Task.with_attributes ("1", false, "foo");
-        test_task_2 = new Agenda.Task.with_attributes ("2", true, "bar");
+        test_task_1 = new Agenda.Task.with_attributes (1, false, "foo");
+        test_task_2 = new Agenda.Task.with_attributes (2, true, "bar");
     }
 
     public override void tear_down () {
