@@ -158,7 +158,7 @@ namespace Agenda {
 
         public void append_task () {
             Task task = new Task.with_attributes (
-                new DateTime.now_local ().hash ().to_string (),
+                0,
                 false,
                 task_entry.text);
 
