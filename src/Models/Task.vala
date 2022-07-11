@@ -27,6 +27,7 @@ namespace Agenda {
         public string text { get; set; default = ""; }
         public int parent_id { get; set; default = 0; }
         public int position { get; set; default = 0; }
+        public string subinfo { get; set; default = ""; }
 
         public Task () {
         }

@@ -85,7 +85,7 @@ namespace Agenda {
                 return ;
             }
 
-            query = "update tasks set updated_at = $updated_at, completed_at = $completed_at where id=$id";
+            query = "update tasks set completed_at = $completed_at, updated_at = $updated_at where id=$id";
             ec = database.prepare_v2 (query, query.length, out markStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
@@ -99,14 +99,14 @@ namespace Agenda {
                 return ;
             }
 
-            query = "select id, description, completed_at, parent_id, position from tasks where deleted_at is null order by position asc";
+            query = "select parent.id, parent.description, parent.completed_at, parent.parent_id, parent.position, count (children.completed_at), COUNT(children.id) from tasks parent left join tasks children on children.parent_id = parent.id where parent.parent_id = $openTask and parent.deleted_at is null and children.deleted_at is null GROUP by parent.id ORDER by parent.position";
             ec = database.prepare_v2 (query, query.length, out selectStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
                 return ;
             }
 
-            query = "select * from tasks where id = $id";
+            query = "select parent.id, parent.description, parent.completed_at, parent.parent_id, parent.position, count (children.completed_at), COUNT(children.id) from tasks parent left join tasks children on children.parent_id = parent.id where parent.id = $id and children.deleted_at is null";
             ec = database.prepare_v2 (query, query.length, out findStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
@@ -114,8 +114,10 @@ namespace Agenda {
             }
         }
 
-        public Task[] list () {
+        public Task[] list (Task parent) {
             Task[] tasks = {};
+            int completed, count;
+            selectStatement.bind_int (1, parent.id);
             while (selectStatement.step () == Sqlite.ROW) {
                 Task task = new Task ();
                 task.id =  selectStatement.column_int (0);
@@ -123,9 +125,42 @@ namespace Agenda {
                 task.complete = selectStatement.column_text (2) != null;
                 task.parent_id =  selectStatement.column_int (3);
                 task.position =  selectStatement.column_int (4);
+                completed = selectStatement.column_int (5);
+                count = selectStatement.column_int (6);
+                task.subinfo = count > 0 ? "(" + completed.to_string() + "/" + count.to_string() + ")": "";
                 tasks += task;
             }
+            selectStatement.reset ();
             return tasks;
+        }
+
+        public Task find (int id){
+            Task task = new Task ();
+            findStatement.bind_int (1, id);
+
+            if(findStatement.step() == Sqlite.ROW){
+                task.id = findStatement.column_int (0);
+                task.text = findStatement.column_text (1);
+                task.complete = findStatement.column_text (2) != null;
+                task.parent_id = findStatement.column_int (3);
+                task.position = findStatement.column_int (4);
+                int completed = findStatement.column_int (5);
+                int count = findStatement.column_int (6);
+                task.subinfo = "(" + completed.to_string() + "/" + count.to_string() + ")";
+            }
+            else{
+                findStatement.reset ();
+                findStatement.bind_int (0, 1);
+                findStatement.step();
+
+                task.id = findStatement.column_int (0);
+                task.text = findStatement.column_text (1);
+                task.complete = findStatement.column_text (2) != null;
+                task.parent_id = findStatement.column_int (3);
+                task.position = findStatement.column_int (4);
+            }            
+            findStatement.reset ();
+            return task;
         }
 
         public void drop (Task task){

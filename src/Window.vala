@@ -45,9 +45,11 @@ namespace Agenda {
         private Gtk.Entry task_entry;
         private HistoryList history_list;
         private Gtk.Button removeCompletedTasksButton;
+        private Gtk.Button backButton;
         private Gtk.Button sortButton;
 
         private HashMap<int, Task> taskMap;
+        private Task openTask;
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
@@ -84,7 +86,11 @@ namespace Agenda {
                      task_list.remove_completed_tasks();
                 }                
             });
-            header.pack_end(removeCompletedTasksButton);
+            backButton = new Gtk.Button.from_icon_name ("go-previous", Gtk.IconSize.BUTTON);
+            backButton.clicked.connect(back_to_parent);
+            header.pack_start(backButton);
+
+            //header.pack_end(removeCompletedTasksButton);
 
             sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic", Gtk.IconSize.BUTTON);
             sortButton.clicked.connect (() => {
@@ -140,8 +146,11 @@ namespace Agenda {
 
         private void load_list () {
             task_list.disable_undo_recording ();
-
-            var tasks = backend.list ();
+            int id = Agenda.settings.get_int ("open-task");
+            openTask = backend.find(id);
+            this.set_title (openTask.text);
+            backButton.set_sensitive(openTask.parent_id > 0);
+            var tasks = backend.list (openTask);
             foreach (Task task in tasks) {
                 task_list.append_task (task);
                 taskMap.set(task.id, task);
@@ -156,11 +165,10 @@ namespace Agenda {
 
             task_list.enable_undo_recording ();
             task_list.clear_undo ();
+            update();
         }
 
         private void setup_ui () {
-            this.set_title ("Agenda");
-
             task_entry.name = "TaskEntry";
             task_entry.get_style_context ().add_class ("task-entry");
             task_entry.placeholder_text = HINT_STRING;
@@ -219,6 +227,12 @@ namespace Agenda {
                 return false;
             });
 
+            task_list.open_task.connect ((task) => {
+                Agenda.settings.set_int ("open-task", task.id);
+                taskMap.clear();
+                load_list();
+            });
+
             task_list.list_changed.connect (() => {
                 bool hasCompletedTasks = task_list.hasCompletedTasks();
                 removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
@@ -259,7 +273,7 @@ namespace Agenda {
             });
 
             this.key_press_event.connect (key_down_event);
-
+            this.button_press_event.connect (button_down_event);
             task_view.expand = true;
             scrolled_window.expand = true;
             scrolled_window.set_policy (
@@ -285,13 +299,22 @@ namespace Agenda {
             task_entry.grab_focus ();
         }
 
+        public void back_to_parent(){
+            Agenda.settings.set_int ("open-task", openTask.parent_id);
+            task_list.clear_tasks();
+            taskMap.clear();
+            load_list();
+        }
+
         public void append_task () {
             int id = Agenda.settings.get_int ("task-sequence");
             Task task = new Task.with_attributes (
                 id,
                 false,
                 task_entry.text);
+            taskMap.set(task.id, task);
             task.position = taskMap.size;
+            task.parent_id = openTask.id;
 
             task_list.append_task (task);
             history_list.add_item (task.text);
@@ -342,6 +365,13 @@ namespace Agenda {
             return false;
         }
 
+        public bool button_down_event(Gdk.EventButton e){
+            if(e.button == 8 && openTask.parent_id > 0){ // mouse backforward
+                back_to_parent();
+            }
+            return false;
+        }
+
         public bool key_down_event (Gdk.EventKey e) {
             switch (e.keyval) {
                 case Gdk.Key.Escape:
@@ -351,7 +381,12 @@ namespace Agenda {
                     break;
                 case Gdk.Key.Delete:
                     if (!task_entry.has_focus && !task_view.is_editing) {
-                        task_view.toggle_selected_task ();
+                        task_view.remove_selected_task ();
+                        update ();
+                    }
+                    break;
+                case Gdk.Key.BackForward:
+                    if (!task_entry.has_focus && !task_view.is_editing) {
                         update ();
                     }
                     break;
