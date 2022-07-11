@@ -28,12 +28,14 @@ namespace Agenda {
         public signal void task_edited (Task task);
         public signal void task_removed (Task task);
         public signal void positions_changed ();
+        public signal void open_task (Task task);
 
         public enum Columns {
             TOGGLE,
             TEXT,
             STRIKETHROUGH,
-            DELETE,
+            SUBINFO,
+            ENTER,
             ID,
             N_COLUMNS
         }
@@ -58,8 +60,8 @@ namespace Agenda {
                 typeof (string),
                 typeof (bool),
                 typeof (string),
+                typeof (string),
                 typeof (int),
-                typeof (string)
             };
 
             set_column_types (types);
@@ -82,7 +84,8 @@ namespace Agenda {
                  Columns.TOGGLE, task.complete,
                  Columns.TEXT, task.text,
                  Columns.STRIKETHROUGH, task.complete,
-                 Columns.DELETE, "edit-delete-symbolic",
+                 Columns.SUBINFO, task.subinfo,
+                 Columns.ENTER, "go-next-symbolic",
                  Columns.ID, task.id);
         }
         /*
@@ -239,8 +242,8 @@ namespace Agenda {
                 this.insert_with_values (null, -1,
                      Columns.TOGGLE, task.complete,
                      Columns.TEXT, task.text,
+                     Columns.SUBINFO, task.subinfo,
                      Columns.STRIKETHROUGH, task.complete,
-                     Columns.DELETE, "edit-delete-symbolic",
                      Columns.ID, task.id);
             }
         }
@@ -259,9 +262,10 @@ namespace Agenda {
              * This takes care of when a row is removed, and also when
              * a row is reordered through drag and drop.
              */
-            if (record_undo_enable)
+            if (record_undo_enable){
                 undo_list.add (this);
                 positions_changed ();
+            }
         }
 
         public bool remove_task (Gtk.TreePath path) {
@@ -284,6 +288,20 @@ namespace Agenda {
             } else {
                 return false;
             }
+        }
+
+        public void enter_task(Gtk.TreePath path){
+            Gtk.TreeIter iter;
+            get_iter (out iter, path);
+            Task task = get_task(iter);
+            clear_tasks();
+            open_task(task);
+        }
+
+        public void clear_tasks(){
+            record_undo_enable = false;
+            clear();
+            record_undo_enable = true;
         }
 
         public void remove_completed_tasks () {
@@ -343,6 +361,15 @@ namespace Agenda {
 
             get_iter (out iter, tree_path);
             set (iter, TaskList.Columns.TEXT, text);
+            task_edited (get_task (iter));
+        }
+
+        public void set_subinfo_text (string path, string text) {
+            Gtk.TreeIter iter;
+            var tree_path = new Gtk.TreePath.from_string (path);
+
+            get_iter (out iter, tree_path);
+            set (iter, TaskList.Columns.SUBINFO, text);
             task_edited (get_task (iter));
         }
 

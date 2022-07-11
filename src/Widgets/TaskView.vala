@@ -44,7 +44,8 @@ namespace Agenda {
             var column = new Gtk.TreeViewColumn ();
             var text = new Gtk.CellRendererText ();
             var toggle = new Gtk.CellRendererToggle ();
-            var delete_button = new Gtk.CellRendererPixbuf ();
+            var subinfo = new Gtk.CellRendererText ();
+            var enterbutton = new Gtk.CellRendererPixbuf ();
 
             // Setup the TOGGLE column
             toggle.xpad = 6;
@@ -69,10 +70,17 @@ namespace Agenda {
             column.expand = true;
             append_column (column);
 
-            // Setup the DELETE column
-            delete_button.xpad = 6;
+            subinfo.ypad = 6;
+            subinfo.editable = false;
+
+            column = new Gtk.TreeViewColumn.with_attributes ("SUBINFO", subinfo,
+                "text", TaskList.Columns.SUBINFO);     
+            append_column (column);
+
+            // Setup the DRAGHANDLE column
+            enterbutton.xpad = 6;
             column = new Gtk.TreeViewColumn.with_attributes (
-                "Delete", delete_button, "icon_name", TaskList.Columns.DELETE);
+                "Enter", enterbutton, "icon_name", TaskList.Columns.ENTER);
             append_column (column);
 
             set_tooltip_column (TaskList.Columns.TEXT);
@@ -115,9 +123,22 @@ namespace Agenda {
             path.free ();
         }
 
-        private void list_row_activated (Gtk.TreePath path, Gtk.TreeViewColumn column) {
-            if (column.title == "Delete") {
+        public void remove_selected_task () {
+            Gtk.TreeIter iter;
+
+            var tree_selection = get_selection ();
+            tree_selection.get_selected (null, out iter);
+            Gtk.TreePath path = task_list.get_path (iter);
+            if (path != null) {
                 task_list.remove_task (path);
+            }
+
+            path.free ();
+        }
+
+        private void list_row_activated (Gtk.TreePath path, Gtk.TreeViewColumn column) {
+            if (column.title == "Enter") {
+                task_list.enter_task (path);
             }
         }
 
