@@ -99,14 +99,14 @@ namespace Agenda {
                 return ;
             }
 
-            query = "select parent.id, parent.description, parent.completed_at, parent.parent_id, parent.position, count (children.completed_at), COUNT(children.id) from tasks parent left join tasks children on children.parent_id = parent.id where parent.parent_id = $openTask and parent.deleted_at is null and children.deleted_at is null GROUP by parent.id ORDER by parent.position";
+            query = "select parent.id, parent.description, parent.completed_at, parent.parent_id, parent.position, count (children.completed_at), COUNT(children.id) from tasks parent left join tasks children on children.parent_id = parent.id and children.deleted_at is null where parent.parent_id = $openTask and parent.deleted_at is null GROUP by parent.id ORDER by parent.position";
             ec = database.prepare_v2 (query, query.length, out selectStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
                 return ;
             }
 
-            query = "select parent.id, parent.description, parent.completed_at, parent.parent_id, parent.position, count (children.completed_at), COUNT(children.id) from tasks parent left join tasks children on children.parent_id = parent.id where parent.id = $id and children.deleted_at is null";
+            query = "select parent.id, parent.description, parent.completed_at, parent.parent_id, parent.position, count (children.completed_at), COUNT(children.id) from tasks parent left join tasks children on children.parent_id = parent.id and children.deleted_at is null where parent.id = $id";
             ec = database.prepare_v2 (query, query.length, out findStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
