@@ -92,7 +92,7 @@ namespace Agenda {
                 return ;
             }
 
-            query = "update tasks set position = $position, updated_at = $updated_at where id=$id";
+            query = "update tasks set position = $position where id=$id";
             ec = database.prepare_v2 (query, query.length, out reorderStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
@@ -203,10 +203,8 @@ namespace Agenda {
         }
 
         public void reorder(Task task){
-            string datetime = new DateTime.now_local ().to_string();
             reorderStatement.bind_int (1, task.position);
-            reorderStatement.bind_text (2, datetime);
-            reorderStatement.bind_int (3, task.id);
+            reorderStatement.bind_int (2, task.id);
             reorderStatement.step ();
             reorderStatement.reset ();
         }
