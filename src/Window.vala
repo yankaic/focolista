@@ -25,7 +25,7 @@ namespace Agenda {
     const int MIN_WIDTH = 500;
     const int MIN_HEIGHT = 600;
     // Limit for any edited text
-    const int EDITED_TEXT_MAX_LEN = 64;
+    const int EDITED_TEXT_MAX_LEN = -1;
 
     const string HINT_STRING = _("Add a new task…");
 
@@ -71,7 +71,6 @@ namespace Agenda {
             app.set_accels_for_action ("win.redo", {"<Ctrl>Y"});
 
             this.get_style_context ().add_class ("rounded");
-            this.set_size_request (MIN_WIDTH, MIN_HEIGHT);
 
             var header = new Gtk.HeaderBar ();
             header.show_close_button = true;
@@ -99,18 +98,6 @@ namespace Agenda {
                 }                
             });
             //header.pack_end(sortButton);
-
-            // Set up geometry
-            Gdk.Geometry geo = Gdk.Geometry ();
-            geo.min_width = MIN_WIDTH;
-            geo.min_height = MIN_HEIGHT;
-            geo.max_width = 1024;
-            geo.max_height = 2048;
-
-            this.set_geometry_hints (
-                null,
-                geo,
-                Gdk.WindowHints.MIN_SIZE | Gdk.WindowHints.MAX_SIZE);
 
             restore_window_position ();
 
