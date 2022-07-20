@@ -108,6 +108,7 @@ namespace Agenda {
                 p.free ();
                 return false;
             });
+            get_selection().set_mode(Gtk.SelectionMode.MULTIPLE);
         }
 
         public void toggle_selected_task () {
@@ -123,17 +124,25 @@ namespace Agenda {
             path.free ();
         }
 
-        public void remove_selected_task () {
+        public void remove_selected_tasks () {
             Gtk.TreeIter iter;
-
+            bool valid = task_list.get_iter_first (out iter);
             var tree_selection = get_selection ();
-            tree_selection.get_selected (null, out iter);
-            Gtk.TreePath path = task_list.get_path (iter);
-            if (path != null) {
-                task_list.remove_task (path);
+            Task[] selectedTasks = {};
+
+            while (valid) {
+                if(tree_selection.iter_is_selected(iter)){
+                    task_list.get_path (iter);
+                    Task task = task_list.get_task(iter);
+                    selectedTasks += task;
+                }
+                valid = task_list.iter_next (ref iter);
             }
 
-            path.free ();
+            foreach(Task task in selectedTasks){
+                task_list.remove_task_object(task);
+            }
+            get_selection ().unselect_all ();
         }
 
         private void list_row_activated (Gtk.TreePath path, Gtk.TreeViewColumn column) {

@@ -368,7 +368,7 @@ namespace Agenda {
                     break;
                 case Gdk.Key.Delete:
                     if (!task_entry.has_focus && !task_view.is_editing) {
-                        task_view.remove_selected_task ();
+                        task_view.remove_selected_tasks ();
                         update ();
                     }
                     break;
