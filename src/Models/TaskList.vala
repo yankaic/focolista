@@ -154,6 +154,25 @@ namespace Agenda {
             return false;
         }
 
+        public void remove_task_object(Task task) {
+            Gtk.TreeIter iter;
+            bool valid = get_iter_first (out iter);
+
+            while (valid) {
+                int id;
+                get (iter, TaskList.Columns.ID, out id);
+
+                if (task.id == id) {
+                    Gtk.TreePath path = get_path(iter);
+                    remove_task(path);
+                    return;
+                }
+                else {
+                    valid = iter_next (ref iter);
+                }
+            }
+        }
+
         /**
          * Return a copy of the list
          */
@@ -273,11 +292,12 @@ namespace Agenda {
             int id;
             string text;
 
-
             if (get_iter (out iter, path)) {
                 get (iter, Columns.ID, out id, Columns.TEXT, out text);
+                Task task = get_task(iter);
 
-                task_removed(get_task(iter));
+
+                task_removed(task);
 #if VALA_0_36
                 remove (ref iter);
 #else
