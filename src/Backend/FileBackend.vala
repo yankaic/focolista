@@ -30,6 +30,7 @@ namespace Agenda {
         private Sqlite.Statement markStatement;
         private Sqlite.Statement reorderStatement;
         private Sqlite.Statement deleteStatement;
+        private Sqlite.Statement moveStatement;
 
         public FileBackend () {
             string user_data = Environment.get_user_data_dir ();
@@ -64,7 +65,7 @@ namespace Agenda {
                 return;
 	        }
 
-            query = "INSERT INTO tasks (id, description, created_at, updated_at, parent_id, position) VALUES ($id, $description, $created_at, $updated_at, $parent_id, $position)";
+            query = "INSERT INTO tasks (id, description, completed_at, created_at, updated_at, parent_id, position) VALUES ($id, $description, $completed_at, $created_at, $updated_at, $parent_id, $position)";
             ec = database.prepare_v2 (query, query.length, out insertStatement);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
@@ -112,12 +113,19 @@ namespace Agenda {
                 stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
                 return ;
             }
+
+            query = "update tasks set parent_id = $parent, position = $position, updated_at = $datetime where id = $id";
+            ec = database.prepare_v2 (query, query.length, out moveStatement);
+            if (ec != Sqlite.OK) {
+                stderr.printf ("Error: %d: %s\n", database.errcode (), database.errmsg ());
+                return ;
+            }
         }
 
-        public Task[] list (Task parent) {
+        public Task[] list (int parent_id) {
             Task[] tasks = {};
             int completed, count;
-            selectStatement.bind_int (1, parent.id);
+            selectStatement.bind_int (1, parent_id);
             while (selectStatement.step () == Sqlite.ROW) {
                 Task task = new Task ();
                 task.id =  selectStatement.column_int (0);
@@ -128,6 +136,7 @@ namespace Agenda {
                 completed = selectStatement.column_int (5);
                 count = selectStatement.column_int (6);
                 task.subinfo = count > 0 ? "(" + completed.to_string() + "/" + count.to_string() + ")": "";
+                task.subtasksCount = count;
                 tasks += task;
             }
             selectStatement.reset ();
@@ -147,6 +156,7 @@ namespace Agenda {
                 int completed = findStatement.column_int (5);
                 int count = findStatement.column_int (6);
                 task.subinfo = "(" + completed.to_string() + "/" + count.to_string() + ")";
+                task.subtasksCount = count;
             }
             else{
                 findStatement.reset ();
@@ -176,10 +186,11 @@ namespace Agenda {
             string datetime = new DateTime.now_local ().to_string();
             insertStatement.bind_int (1, task.id);
             insertStatement.bind_text (2, task.text);
-            insertStatement.bind_text (3, datetime);
+            insertStatement.bind_text (3, task.complete? datetime : null);
             insertStatement.bind_text (4, datetime);
-            insertStatement.bind_int (5, task.parent_id);
-            insertStatement.bind_int (6, task.position);
+            insertStatement.bind_text (5, datetime);
+            insertStatement.bind_int (6, task.parent_id);
+            insertStatement.bind_int (7, task.position);
             insertStatement.step ();
             insertStatement.reset ();
         }
@@ -207,6 +218,16 @@ namespace Agenda {
             reorderStatement.bind_int (2, task.id);
             reorderStatement.step ();
             reorderStatement.reset ();
+        }
+
+        public void changeParent(Task task) {
+            string datetime = new DateTime.now_local ().to_string();
+            moveStatement.bind_int (1, task.parent_id);
+            moveStatement.bind_int (2, task.position);
+            moveStatement.bind_text (3,  datetime);
+            moveStatement.bind_int (4, task.id);
+            moveStatement.step ();
+            moveStatement.reset ();
         }
 
     }
