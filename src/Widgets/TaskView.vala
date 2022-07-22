@@ -27,6 +27,9 @@ namespace Agenda {
         private TaskList task_list;
         public bool is_editing;
 
+        public signal void text_editing_started();
+        public signal void text_editing_ended();
+
         public TaskView.with_list (TaskList list) {
             task_list = list;
             model = task_list;
@@ -88,10 +91,12 @@ namespace Agenda {
             text.editing_started.connect ( (editable, path) => {
                 debug ("Editing started");
                 is_editing = true;
+                text_editing_started();
             });
 
             text.editing_canceled.connect ( () => {
                 is_editing = false;
+                text_editing_ended();
             });
 
             text.edited.connect (text_edited);
@@ -124,7 +129,7 @@ namespace Agenda {
             path.free ();
         }
 
-        public void remove_selected_tasks () {
+        public Task[] getSeletedTasks(){
             Gtk.TreeIter iter;
             bool valid = task_list.get_iter_first (out iter);
             var tree_selection = get_selection ();
@@ -138,6 +143,11 @@ namespace Agenda {
                 }
                 valid = task_list.iter_next (ref iter);
             }
+            return selectedTasks;
+        }
+
+        public void remove_selected_tasks () {
+            Task[] selectedTasks = getSeletedTasks();
 
             foreach(Task task in selectedTasks){
                 task_list.remove_task_object(task);
@@ -178,6 +188,7 @@ namespace Agenda {
             }
             task_list.set_task_text (path, edited_text);
             is_editing = false;
+            text_editing_ended();
         }
     }
 }

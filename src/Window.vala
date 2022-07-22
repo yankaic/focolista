@@ -50,25 +50,39 @@ namespace Agenda {
 
         private HashMap<int, Task> taskMap;
         private Task openTask;
+        private Task[] tasksInClipboard;
+        private bool cloneMode; // true - copy tasks, false - move tasks
+        private int copySource;
+        private Agenda app;
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
             taskMap = new HashMap<int, Task> ();
+            this.app = app;
 
             var window_close_action = new SimpleAction ("close", null);
             var app_quit_action = new SimpleAction ("quit", null);
             var undo_action = new SimpleAction ("undo", null);
             var redo_action = new SimpleAction ("redo", null);
+            var copy_action = new SimpleAction ("copy", null);
+            var cut_action = new SimpleAction ("cut", null);
+            var paste_action = new SimpleAction ("paste", null);
 
             add_action (window_close_action);
             add_action (app_quit_action);
             add_action (undo_action);
             add_action (redo_action);
+            add_action (copy_action);
+            add_action (cut_action);
+            add_action (paste_action);
 
             app.set_accels_for_action ("win.close", {"<Ctrl>W"});
             app.set_accels_for_action ("win.quit", {"<Ctrl>Q"});
             app.set_accels_for_action ("win.undo", {"<Ctrl>Z"});
             app.set_accels_for_action ("win.redo", {"<Ctrl>Y"});
+            app.set_accels_for_action ("win.cut", {"<Ctrl>X"});
+            app.set_accels_for_action ("win.copy", {"<Ctrl>C"});
+            app.set_accels_for_action ("win.paste", {"<Ctrl>V"});
 
             this.get_style_context ().add_class ("rounded");
 
@@ -125,6 +139,9 @@ namespace Agenda {
             app_quit_action.activate.connect (this.close);
             undo_action.activate.connect (task_list.undo);
             redo_action.activate.connect (task_list.redo);
+            copy_action.activate.connect(copy_tasks);
+            cut_action.activate.connect(cut_tasks);
+            paste_action.activate.connect(paste_tasks);
 
             bool hasCompletedTasks = task_list.hasCompletedTasks();
             removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
@@ -137,7 +154,7 @@ namespace Agenda {
             openTask = backend.find(id);
             this.set_title (openTask.text);
             backButton.set_sensitive(openTask.parent_id > 0);
-            var tasks = backend.list (openTask);
+            var tasks = backend.list (openTask.id);
             foreach (Task task in tasks) {
                 task_list.append_task (task);
                 taskMap.set(task.id, task);
@@ -173,6 +190,16 @@ namespace Agenda {
 
             task_entry.activate.connect (append_task);
             task_entry.icon_press.connect (append_task);
+
+            task_entry.focus_in_event.connect ((e) => {
+                remove_accelerators_copy();
+                return false;
+            });
+
+            task_entry.focus_out_event.connect ((e) => {
+                add_accelerators_copy();
+                return false;
+            });
 
             task_entry.changed.connect (() => {
                 var str = task_entry.get_text ();
@@ -213,6 +240,9 @@ namespace Agenda {
                 selected.unselect_all ();
                 return false;
             });
+
+            task_view.text_editing_started.connect(remove_accelerators_copy);
+            task_view.text_editing_ended.connect(add_accelerators_copy);
 
             task_list.open_task.connect ((task) => {
                 Agenda.settings.set_int ("open-task", task.id);
@@ -286,6 +316,18 @@ namespace Agenda {
             task_entry.grab_focus ();
         }
 
+        public void remove_accelerators_copy () {
+            app.set_accels_for_action ("win.cut", {});
+            app.set_accels_for_action ("win.copy", {});
+            app.set_accels_for_action ("win.paste", {});
+        }
+
+        public void add_accelerators_copy () {
+            app.set_accels_for_action ("win.cut", {"<Ctrl>X"});
+            app.set_accels_for_action ("win.copy", {"<Ctrl>C"});
+            app.set_accels_for_action ("win.paste", {"<Ctrl>V"});
+        }
+
         public void back_to_parent(){
             Agenda.settings.set_int ("open-task", openTask.parent_id);
             task_list.clear_tasks();
@@ -293,12 +335,103 @@ namespace Agenda {
             load_list();
         }
 
-        public void append_task () {
+        public void cut_tasks () {
+            tasksInClipboard = task_view.getSeletedTasks();
+            cloneMode = false;
+            copySource = openTask.id;
+        }
+
+        public void copy_tasks () {
+            tasksInClipboard = task_view.getSeletedTasks();
+            cloneMode = true;
+            copySource = openTask.id;
+            get_ascending_ids(tasksInClipboard[0]);
+        }
+
+        public void paste_tasks () {
+            if(tasksInClipboard.length <= 0)
+                return;
+
+            if (cloneMode) 
+                clone_tasks(openTask, tasksInClipboard);
+            
+            else if(!contains_ascending(openTask, tasksInClipboard[0]) )
+                move_tasks();
+            
+            tasksInClipboard = {};
+            task_list.clear_tasks();
+            task_list.open_task(openTask); 
+        }
+
+        private bool contains_ascending(Task task, Task possible_ascendant){
+            int[] parent_ids = get_ascending_ids(task);
+            foreach (int id in parent_ids){
+                if(possible_ascendant.id == id)
+                    return true;
+            }
+            return false;
+        }
+
+        private int[] get_ascending_ids(Task task){
+            int[] ids = {};
+            Task tarefa = backend.find(task.id);
+            while(tarefa.parent_id > 0) {
+                ids += tarefa.id;
+                tarefa = backend.find(tarefa.parent_id);
+            }
+            return ids;
+        }
+
+        private void clone_tasks(Task parent, Task[] tasks) {
+            foreach(Task task in tasks) {
+                Task clone = create_clone(task, parent);
+                Task[] subtasks = backend.list(task.id);
+                clone_tasks(clone, subtasks);
+            }
+        }
+
+        private Task create_clone(Task task, Task parent){
             int id = Agenda.settings.get_int ("task-sequence");
+            parent.subtasksCount++;
+            Task clone = new Task();
+            clone.id = id++;
+            clone.text = task.text;
+            clone.text = task.text;
+            clone.complete = task.complete;
+            clone.position = parent.subtasksCount;
+            clone.parent_id = parent.id;
+            backend.create(clone);
+            Agenda.settings.set_value ("task-sequence", id);
+            return clone;
+        }
+
+        public void move_tasks(){
+            int position = taskMap.size + 1;            
+            foreach (Task task in tasksInClipboard) {
+                task.parent_id = openTask.id;
+                task.position = position++;
+                backend.changeParent(task);
+            }
+
+            Task[] sourcelist = backend.list (copySource);
+            position = 1;
+            foreach (Task task in sourcelist) {
+                task.position = position++;
+                backend.reorder(task);
+            }
+        }
+
+        public void append_task () {
             Task task = new Task.with_attributes (
-                id,
+                -1,
                 false,
                 task_entry.text);
+            create_task(task);
+        }
+
+        public void create_task(Task task){
+            int generatedId = Agenda.settings.get_int ("task-sequence");
+            task.id = generatedId++;
             taskMap.set(task.id, task);
             task.position = taskMap.size;
             task.parent_id = openTask.id;
@@ -307,7 +440,7 @@ namespace Agenda {
             history_list.add_item (task.text);
             // When adding a new task rearrange the tasks
             task_entry.text = "";
-            Agenda.settings.set_value ("task-sequence", ++id);
+            Agenda.settings.set_value ("task-sequence", generatedId);
             backend.create(task);
             update ();
         }
