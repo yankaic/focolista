@@ -37,6 +37,7 @@ namespace Agenda {
             SUBINFO,
             ENTER,
             ID,
+            TASK,
             N_COLUMNS
         }
 
@@ -62,6 +63,7 @@ namespace Agenda {
                 typeof (string),
                 typeof (string),
                 typeof (int),
+                typeof (Task),
             };
 
             set_column_types (types);
@@ -86,7 +88,9 @@ namespace Agenda {
                  Columns.STRIKETHROUGH, task.complete,
                  Columns.SUBINFO, task.subinfo,
                  Columns.ENTER, "go-next-symbolic",
-                 Columns.ID, task.id);
+                 Columns.ID, task.id,
+                 Columns.TASK, task
+                );
         }
         /*
          *  Sort the tasks so finished tasks are at bottom
@@ -214,16 +218,9 @@ namespace Agenda {
         }
 
         public Task get_task (Gtk.TreeIter iter) {
-            int id;
-            bool complete;
-            string text;
-
-            this.get (iter,
-                      Columns.ID, out id,
-                      Columns.TOGGLE, out complete,
-                      Columns.TEXT, out text);
-
-            return new Task.with_attributes (id, complete, text);
+            Task task;
+            this.get (iter, Columns.TASK, out task);
+            return task;
         }
 
         public bool has_duplicates_of (int id) {
@@ -263,7 +260,9 @@ namespace Agenda {
                      Columns.TEXT, task.text,
                      Columns.SUBINFO, task.subinfo,
                      Columns.STRIKETHROUGH, task.complete,
-                     Columns.ID, task.id);
+                     Columns.ID, task.id,
+                     Columns.TASK, task
+                );
             }
         }
 
@@ -377,11 +376,14 @@ namespace Agenda {
 
         public void set_task_text (string path, string text) {
             Gtk.TreeIter iter;
+            Task task;
             var tree_path = new Gtk.TreePath.from_string (path);
 
             get_iter (out iter, tree_path);
+            get (iter, Columns.TASK, out task);
             set (iter, TaskList.Columns.TEXT, text);
-            task_edited (get_task (iter));
+            task.text = text;
+            task_edited (task);
         }
 
         public void set_subinfo_text (string path, string text) {
@@ -396,15 +398,18 @@ namespace Agenda {
         public void toggle_task (Gtk.TreePath path) {
             bool toggle;
             Gtk.TreeIter iter;
+            Task task;
 
             get_iter (out iter, path);
 
             get (iter, Columns.TOGGLE, out toggle);
+            get (iter, Columns.TASK, out task);
             set (iter,
                 TaskList.Columns.TOGGLE, !toggle,
                 TaskList.Columns.STRIKETHROUGH, !toggle);
+            task.complete = !toggle;
 
-            task_toggled (get_task (iter));
+            task_toggled (task);
         }
     }
 }
