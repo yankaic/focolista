@@ -51,9 +51,15 @@ namespace Agenda {
         private HashMap<int, Task> taskMap;
         private Task openTask;
         private Task[] tasksInClipboard;
-        private bool cloneMode; // true - copy tasks, false - move tasks
+        private PasteMode pasteMode;
         private int copySource;
         private Agenda app;
+
+        public enum PasteMode {
+            CLONE,
+            MOVE,
+            LINK
+        }
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
@@ -67,6 +73,7 @@ namespace Agenda {
             var copy_action = new SimpleAction ("copy", null);
             var cut_action = new SimpleAction ("cut", null);
             var paste_action = new SimpleAction ("paste", null);
+            var link_action = new SimpleAction ("link", null);
 
             add_action (window_close_action);
             add_action (app_quit_action);
@@ -75,6 +82,7 @@ namespace Agenda {
             add_action (copy_action);
             add_action (cut_action);
             add_action (paste_action);
+            add_action (link_action);
 
             app.set_accels_for_action ("win.close", {"<Ctrl>W"});
             app.set_accels_for_action ("win.quit", {"<Ctrl>Q"});
@@ -83,6 +91,7 @@ namespace Agenda {
             app.set_accels_for_action ("win.cut", {"<Ctrl>X"});
             app.set_accels_for_action ("win.copy", {"<Ctrl>C"});
             app.set_accels_for_action ("win.paste", {"<Ctrl>V"});
+            app.set_accels_for_action ("win.link", {"<Ctrl>L"});
 
             this.get_style_context ().add_class ("rounded");
 
@@ -139,9 +148,17 @@ namespace Agenda {
             app_quit_action.activate.connect (this.close);
             undo_action.activate.connect (task_list.undo);
             redo_action.activate.connect (task_list.redo);
-            copy_action.activate.connect(copy_tasks);
-            cut_action.activate.connect(cut_tasks);
             paste_action.activate.connect(paste_tasks);
+
+            copy_action.activate.connect(() => {
+                prepare_clipboard(PasteMode.CLONE);
+            });
+            cut_action.activate.connect(() => {
+                prepare_clipboard(PasteMode.MOVE);
+            });
+            link_action.activate.connect(() => {
+                prepare_clipboard(PasteMode.LINK);
+            });
 
             bool hasCompletedTasks = task_list.hasCompletedTasks();
             removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
@@ -150,8 +167,7 @@ namespace Agenda {
 
         private void load_list () {
             task_list.disable_undo_recording ();
-            int id = Agenda.settings.get_int ("open-task");
-            openTask = backend.find(id);
+            openTask = backend.getHeadStack();
             this.set_title (openTask.text);
             backButton.set_sensitive(openTask.parent_id > 0);
             var tasks = backend.list (openTask.id);
@@ -245,7 +261,7 @@ namespace Agenda {
             task_view.text_editing_ended.connect(add_accelerators_copy);
 
             task_list.open_task.connect ((task) => {
-                Agenda.settings.set_int ("open-task", task.id);
+                backend.putStack(task);
                 taskMap.clear();
                 load_list();
             });
@@ -320,46 +336,48 @@ namespace Agenda {
             app.set_accels_for_action ("win.cut", {});
             app.set_accels_for_action ("win.copy", {});
             app.set_accels_for_action ("win.paste", {});
+            app.set_accels_for_action ("win.link", {});
         }
 
         public void add_accelerators_copy () {
             app.set_accels_for_action ("win.cut", {"<Ctrl>X"});
             app.set_accels_for_action ("win.copy", {"<Ctrl>C"});
             app.set_accels_for_action ("win.paste", {"<Ctrl>V"});
+            app.set_accels_for_action ("win.link", {"<Ctrl>L"});
         }
 
         public void back_to_parent(){
-            Agenda.settings.set_int ("open-task", openTask.parent_id);
+            backend.popStack();
             task_list.clear_tasks();
             taskMap.clear();
             load_list();
         }
 
-        public void cut_tasks () {
+        public void prepare_clipboard (PasteMode mode) {
             tasksInClipboard = task_view.getSeletedTasks();
-            cloneMode = false;
+            pasteMode = mode;
             copySource = openTask.id;
-        }
-
-        public void copy_tasks () {
-            tasksInClipboard = task_view.getSeletedTasks();
-            cloneMode = true;
-            copySource = openTask.id;
-            get_ascending_ids(tasksInClipboard[0]);
         }
 
         public void paste_tasks () {
             if(tasksInClipboard.length <= 0)
                 return;
-
-            if (cloneMode) 
-                clone_tasks(openTask, tasksInClipboard);
             
-            else if(!contains_ascending(openTask, tasksInClipboard[0]) )
-                move_tasks();
+            switch(pasteMode) {
+                case PasteMode.CLONE:
+                    clone_tasks(openTask, tasksInClipboard);
+                    break;
+                case PasteMode.MOVE:                    
+                    move_tasks();
+                    break;
+                case PasteMode.LINK:                    
+                    link_tasks();
+                    break;
+            }
             
             tasksInClipboard = {};
             task_list.clear_tasks();
+            backend.popStack();
             task_list.open_task(openTask); 
         }
 
@@ -374,12 +392,19 @@ namespace Agenda {
 
         private int[] get_ascending_ids(Task task){
             int[] ids = {};
-            Task tarefa = backend.find(task.id);
-            while(tarefa.parent_id > 0) {
-                ids += tarefa.id;
-                tarefa = backend.find(tarefa.parent_id);
-            }
+            ids += task.id;
+            //  Task tarefa = backend.find(task.id);
+            //  while(tarefa.parent_id > 0) {
+            //      ids += tarefa.id;
+            //      tarefa = backend.find(tarefa.parent_id);
+            //  }
             return ids;
+        }
+
+        private void link_tasks() {
+            foreach(Task task in tasksInClipboard) {
+                backend.create_link(task, openTask);
+            }
         }
 
         private void clone_tasks(Task parent, Task[] tasks) {
@@ -406,15 +431,14 @@ namespace Agenda {
         }
 
         public void move_tasks(){
-            int position = taskMap.size + 1;            
+            if(contains_ascending(openTask, tasksInClipboard[0]))
+                return;           
             foreach (Task task in tasksInClipboard) {
-                task.parent_id = openTask.id;
-                task.position = position++;
-                backend.changeParent(task);
+                backend.changeParent(task, openTask);
             }
 
             Task[] sourcelist = backend.list (copySource);
-            position = 1;
+            int position = 1;
             foreach (Task task in sourcelist) {
                 task.position = position++;
                 backend.reorder(task);
