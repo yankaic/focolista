@@ -98,6 +98,9 @@ namespace Agenda {
             toggle.toggled.connect (toggle_clicked);
             row_activated.connect (list_row_activated);
             button_press_event.connect ((event) => {
+                if (event.button == 8) { // mouse backforward
+                    return false;
+                }
                 Gtk.TreePath p = new Gtk.TreePath ();
                 get_path_at_pos ((int) event.x, (int) event.y, out p, null, null, null);
                 if (p == null) {
