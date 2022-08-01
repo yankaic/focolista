@@ -50,7 +50,7 @@ namespace Agenda {
 
         private HashMap<int, Task> taskMap;
         private Task openTask;
-        private Task[] tasksInClipboard;
+        private Task[] clipboard;
         private PasteMode pasteMode;
         private int copySource;
         private Agenda app;
@@ -150,9 +150,7 @@ namespace Agenda {
             redo_action.activate.connect (task_list.redo);
             paste_action.activate.connect(paste_tasks);
 
-            copy_action.activate.connect(() => {
-                prepare_clipboard(PasteMode.CLONE);
-            });
+            copy_action.activate.connect(copy_tasks);
             cut_action.activate.connect(() => {
                 prepare_clipboard(PasteMode.MOVE);
             });
@@ -353,19 +351,30 @@ namespace Agenda {
             load_list();
         }
 
+        private void copy_tasks(){
+            prepare_clipboard(PasteMode.CLONE);
+            
+            var external_clipboard = Gtk.Clipboard.get_default (Gdk.Display.get_default ());
+            string text = "";
+            foreach (Task task in clipboard){
+                text += task.text + "\n";
+            }
+            external_clipboard.set_text (text, text.length - 1);
+        }
+
         public void prepare_clipboard (PasteMode mode) {
-            tasksInClipboard = task_view.getSeletedTasks();
+            clipboard = task_view.getSeletedTasks();
             pasteMode = mode;
             copySource = openTask.id;
         }
 
         public void paste_tasks () {
-            if(tasksInClipboard.length <= 0)
+            if(clipboard.length <= 0)
                 return;
             
             switch(pasteMode) {
                 case PasteMode.CLONE:
-                    clone_tasks(openTask, tasksInClipboard);
+                    clone_tasks(openTask, clipboard);
                     break;
                 case PasteMode.MOVE:                    
                     move_tasks();
@@ -375,7 +384,7 @@ namespace Agenda {
                     break;
             }
             
-            tasksInClipboard = {};
+            clipboard = {};
             task_list.clear_tasks();
             backend.popStack();
             task_list.open_task(openTask); 
@@ -402,7 +411,7 @@ namespace Agenda {
         }
 
         private void link_tasks() {
-            foreach(Task task in tasksInClipboard) {
+            foreach(Task task in clipboard) {
                 backend.create_link(task, openTask);
             }
         }
@@ -431,9 +440,9 @@ namespace Agenda {
         }
 
         public void move_tasks(){
-            if(contains_ascending(openTask, tasksInClipboard[0]))
+            if(contains_ascending(openTask, clipboard[0]))
                 return;           
-            foreach (Task task in tasksInClipboard) {
+            foreach (Task task in clipboard) {
                 backend.changeParent(task, openTask);
             }
 
