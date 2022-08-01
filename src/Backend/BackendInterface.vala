@@ -28,6 +28,7 @@ namespace Agenda {
         public abstract void drop (Task task);
         public abstract void mark (Task task);
         public abstract void reorder (Task task);
+        public abstract void create_link (Task task, Task new_parent);
         public abstract Task getHeadStack ();
         public abstract Task popStack ();
         public abstract void putStack (Task task);

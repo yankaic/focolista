@@ -82,6 +82,7 @@ namespace Agenda {
             add_action (copy_action);
             add_action (cut_action);
             add_action (paste_action);
+            add_action (link_action);
 
             app.set_accels_for_action ("win.close", {"<Ctrl>W"});
             app.set_accels_for_action ("win.quit", {"<Ctrl>Q"});
@@ -154,6 +155,9 @@ namespace Agenda {
             });
             cut_action.activate.connect(() => {
                 prepare_clipboard(PasteMode.MOVE);
+            });
+            link_action.activate.connect(() => {
+                prepare_clipboard(PasteMode.LINK);
             });
 
             bool hasCompletedTasks = task_list.hasCompletedTasks();
@@ -331,6 +335,7 @@ namespace Agenda {
         public void remove_accelerators_copy () {
             app.set_accels_for_action ("win.cut", {});
             app.set_accels_for_action ("win.copy", {});
+            app.set_accels_for_action ("win.paste", {});
             app.set_accels_for_action ("win.link", {});
         }
 
@@ -365,7 +370,9 @@ namespace Agenda {
                 case PasteMode.MOVE:                    
                     move_tasks();
                     break;
-
+                case PasteMode.LINK:                    
+                    link_tasks();
+                    break;
             }
             
             tasksInClipboard = {};
@@ -394,6 +401,12 @@ namespace Agenda {
             return ids;
         }
 
+        private void link_tasks() {
+            foreach(Task task in tasksInClipboard) {
+                backend.create_link(task, openTask);
+            }
+        }
+
         private void clone_tasks(Task parent, Task[] tasks) {
             foreach(Task task in tasks) {
                 Task clone = create_clone(task, parent);
@@ -419,16 +432,13 @@ namespace Agenda {
 
         public void move_tasks(){
             if(contains_ascending(openTask, tasksInClipboard[0]))
-                return;
-            int position = taskMap.size + 1;            
+                return;           
             foreach (Task task in tasksInClipboard) {
-                task.parent_id = openTask.id;
-                task.position = position++;
-                backend.changeParent(task);
+                backend.changeParent(task, openTask);
             }
 
             Task[] sourcelist = backend.list (copySource);
-            position = 1;
+            int position = 1;
             foreach (Task task in sourcelist) {
                 task.position = position++;
                 backend.reorder(task);

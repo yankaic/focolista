@@ -88,13 +88,13 @@ namespace Agenda {
             query = "update edge set position = $position, updated_at = $updated_at where parent_id = $parent_id and child_id = $child_id";
             database.prepare_v2 (query, query.length, out reorderStatement);
 
-            query = "select * from summary where parent_id = $id";
+            query = "select task.id, task.description, task.completed_at, parent_connection.parent_id as parent_id, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where parent_connection.parent_id = $parentId GROUP by task.id ORDER by parent_connection.position";
             database.prepare_v2 (query, query.length, out selectStatement);
 
-            query = "select * from summary where id = $id and (parent_id = $parent_id or parent_id is null)";
+            query = "select task.id, task.description, task.completed_at, parent_connection.parent_id as parent_id, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where task.id = $id and (parent_connection.parent_id = $parentId or parent_connection.parent_id is null) GROUP by task.id ORDER by parent_connection.position";
             database.prepare_v2 (query, query.length, out findStatement);
 
-            query = "update edge set parent_id = $parent_id, position = $position, updated_at = $datetime where child_id = $id";
+            query = "update edge set parent_id = $new_parent_id, position = $position, updated_at = $datetime where child_id = $id and parent_id = $parent_id";
             database.prepare_v2 (query, query.length, out moveStatement);
 
             query = "select task_id, parent_id from stack order by id desc limit 1";
@@ -215,14 +215,27 @@ namespace Agenda {
             reorderStatement.reset ();
         }
 
-        public void changeParent(Task task) {
+        public void changeParent(Task task, Task new_parent) {
             string datetime = new DateTime.now_local ().to_string();
-            moveStatement.bind_int (1, task.parent_id);
-            moveStatement.bind_int (2, task.position);
-            moveStatement.bind_text (3,  datetime);
+            new_parent.subtasksCount++;
+            moveStatement.bind_int (1, new_parent.id);
+            moveStatement.bind_int (2, new_parent.subtasksCount);
+            moveStatement.bind_text (3, datetime);
             moveStatement.bind_int (4, task.id);
+            moveStatement.bind_int (5, task.parent_id);
             moveStatement.step ();
             moveStatement.reset ();
+        }
+
+        public void create_link (Task task, Task new_parent) {
+            new_parent.subtasksCount++;
+            string datetime = new DateTime.now_local ().to_string();
+            insertConnectionStatement.bind_int (1, new_parent.id);
+            insertConnectionStatement.bind_int (2, task.id);
+            insertConnectionStatement.bind_int (3, new_parent.subtasksCount);
+            insertConnectionStatement.bind_text (4, datetime);
+            insertConnectionStatement.step ();
+            insertConnectionStatement.reset ();
         }
 
         public Task getHeadStack () {

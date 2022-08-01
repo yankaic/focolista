@@ -41,12 +41,14 @@ namespace Agenda {
         }
 
         public string to_string () {
-            string str = "";
+            string str = "id: ";
 
             str += id.to_string();
-            str += ": ";
+            str += ", text: ";
             str += text;
-            str += complete ? " ✓": " ";
+            str += " " + (complete ? " ✓": " ");
+            str += ", parent: ";
+            str += parent_id.to_string();
 
             return str;
         }
