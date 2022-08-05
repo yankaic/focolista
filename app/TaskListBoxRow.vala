@@ -26,7 +26,7 @@
 
         public TaskListBoxRow (Task task) {
 
-            var label = new Gtk.Label (task.text);
+            var label = new Gtk.Label (task.title);
             var strike_attr = Pango.attr_strikethrough_new (task.complete);
             var attr_list = new Pango.AttrList ();
             attr_list.insert ((owned) strike_attr);

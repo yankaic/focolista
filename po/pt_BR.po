@@ -25,7 +25,7 @@ msgstr "Adicione nova tarefa..."
 
 #: src/Window.vala:83
 msgid "No Tasks!"
-msgstr "Sem tarefas!"
+msgstr "Lista vazia"
 
 #: src/Window.vala:84
 msgid "(add one below)"
@@ -33,7 +33,7 @@ msgstr "(e uma abaixo)"
 
 #: src/Window.vala:84
 msgid "(way to go)"
-msgstr "(modo de ir)"
+msgstr "Não há tarefas aqui"
 
 #: src/Window.vala:168
 msgid "Add to list…"
@@ -62,3 +62,12 @@ msgstr "Limpar histórico"
 
 #~ msgid "A task has been removed"
 #~ msgstr "Uma tarefa foi removida"
+
+msgid "Hide description"
+msgstr "Ocultar descrição"
+
+msgid "Show description"
+msgstr "Mostrar descrição"
+
+msgid "Description: "
+msgstr "Descrição: "

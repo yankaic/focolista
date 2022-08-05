@@ -28,6 +28,7 @@ namespace Agenda {
         private Sqlite.Statement selectStatement;
         private Sqlite.Statement findStatement;
         private Sqlite.Statement updateStatement;
+        private Sqlite.Statement updateDescriptionStatement;
         private Sqlite.Statement markStatement;
         private Sqlite.Statement reorderStatement;
         private Sqlite.Statement deleteStatement;
@@ -70,14 +71,17 @@ namespace Agenda {
                 return;
 	        }
 
-            query = "INSERT INTO tasks (id, description, completed_at, created_at, updated_at) VALUES ($id, $description, $completed_at, $created_at, $updated_at)";
+            query = "INSERT INTO tasks (id, title, description, completed_at, created_at, updated_at) VALUES ($id, $title, $description, $completed_at, $created_at, $updated_at)";
             database.prepare_v2 (query, query.length, out insertStatement);
 
             query = "INSERT INTO edge (parent_id, child_id, position, updated_at) VALUES ($parent_id, $child_id, $position, $updated_at)";
             database.prepare_v2 (query, query.length, out insertConnectionStatement);
 
-            query = "update tasks set description=$description, updated_at=$updated_at where id=$id";
+            query = "update tasks set title=$title, updated_at=$updated_at where id=$id";
             database.prepare_v2 (query, query.length, out updateStatement);
+
+            query = "update tasks set description=$description, updated_at=$updated_at where id=$id";
+            database.prepare_v2 (query, query.length, out updateDescriptionStatement);
 
             query = "update edge set updated_at = $updated_at, deleted_at = $deleted_at where parent_id = $parent_id and child_id = $child_id";
             database.prepare_v2 (query, query.length, out deleteStatement);
@@ -88,10 +92,10 @@ namespace Agenda {
             query = "update edge set position = $position, updated_at = $updated_at where parent_id = $parent_id and child_id = $child_id";
             database.prepare_v2 (query, query.length, out reorderStatement);
 
-            query = "select task.id, task.description, task.completed_at, parent_connection.parent_id as parent_id, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where parent_connection.parent_id = $parentId GROUP by task.id ORDER by parent_connection.position";
+            query = "select task.id, task.title, task.description, task.completed_at, parent_connection.parent_id as parent_id, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where parent_connection.parent_id = $parentId GROUP by task.id ORDER by parent_connection.position";
             database.prepare_v2 (query, query.length, out selectStatement);
 
-            query = "select task.id, task.description, task.completed_at, parent_connection.parent_id as parent_id, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where task.id = $id and (parent_connection.parent_id = $parentId or parent_connection.parent_id is null) GROUP by task.id ORDER by parent_connection.position";
+            query = "select task.id, task.title, task.description, task.completed_at, parent_connection.parent_id as parent_id, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where task.id = $id and (parent_connection.parent_id = $parentId or parent_connection.parent_id is null) GROUP by task.id ORDER by parent_connection.position";
             database.prepare_v2 (query, query.length, out findStatement);
 
             query = "update edge set parent_id = $new_parent_id, position = $position, updated_at = $datetime where child_id = $id and parent_id = $parent_id";
@@ -114,12 +118,13 @@ namespace Agenda {
             while (selectStatement.step () == Sqlite.ROW) {
                 Task task = new Task ();
                 task.id =  selectStatement.column_int (0);
-                task.text =  selectStatement.column_text (1);
-                task.complete = selectStatement.column_text (2) != null;
-                task.parent_id =  selectStatement.column_int (3);
-                task.position =  selectStatement.column_int (4);
-                completed = selectStatement.column_int (5);
-                count = selectStatement.column_int (6);
+                task.title =  selectStatement.column_text (1);
+                task.description =  selectStatement.column_text (2);
+                task.complete = selectStatement.column_text (3) != null;
+                task.parent_id =  selectStatement.column_int (4);
+                task.position =  selectStatement.column_int (5);
+                completed = selectStatement.column_int (6);
+                count = selectStatement.column_int (7);
                 task.subinfo = count > 0 ? "(" + completed.to_string() + "/" + count.to_string() + ")": "";
                 task.subtasksCount = count;
                 tasks += task;
@@ -135,12 +140,13 @@ namespace Agenda {
 
             if(findStatement.step() == Sqlite.ROW){
                 task.id = findStatement.column_int (0);
-                task.text = findStatement.column_text (1);
-                task.complete = findStatement.column_text (2) != null;
-                task.parent_id = findStatement.column_int (3);
-                task.position = findStatement.column_int (4);
-                int completed = findStatement.column_int (5);
-                int count = findStatement.column_int (6);
+                task.title = findStatement.column_text (1);
+                task.description = findStatement.column_text (2);
+                task.complete = findStatement.column_text (3) != null;
+                task.parent_id = findStatement.column_int (4);
+                task.position = findStatement.column_int (5);
+                int completed = findStatement.column_int (6);
+                int count = findStatement.column_int (7);
                 task.subinfo = "(" + completed.to_string() + "/" + count.to_string() + ")";
                 task.subtasksCount = count;
             }
@@ -150,7 +156,7 @@ namespace Agenda {
                 findStatement.step();
 
                 task.id = findStatement.column_int (0);
-                task.text = findStatement.column_text (1);
+                task.title = findStatement.column_text (1);
                 task.complete = findStatement.column_text (2) != null;
                 task.parent_id = findStatement.column_int (3);
                 task.position = findStatement.column_int (4);
@@ -172,10 +178,11 @@ namespace Agenda {
         public void create (Task task){
             string datetime = new DateTime.now_local ().to_string();
             insertStatement.bind_int (1, task.id);
-            insertStatement.bind_text (2, task.text);
-            insertStatement.bind_text (3, task.complete? datetime : null);
-            insertStatement.bind_text (4, datetime);
+            insertStatement.bind_text (2, task.title);
+            insertStatement.bind_text (3, task.description);
+            insertStatement.bind_text (4, task.complete? datetime : null);
             insertStatement.bind_text (5, datetime);
+            insertStatement.bind_text (6, datetime);
             insertStatement.step ();
             insertStatement.reset ();
 
@@ -189,7 +196,7 @@ namespace Agenda {
 
         public void update(Task task){
             string datetime = new DateTime.now_local ().to_string();
-            updateStatement.bind_text (1, task.text);
+            updateStatement.bind_text (1, task.title);
             updateStatement.bind_text (2, datetime);
             updateStatement.bind_int (3, task.id);
             updateStatement.step ();
@@ -259,6 +266,24 @@ namespace Agenda {
             putStackStatement.bind_int(2, task.parent_id);
             putStackStatement.step();
             putStackStatement.reset();
+        }
+
+        private bool waiting_one_second = false;
+
+        public void modify_description(Task task) {
+            if (!waiting_one_second) {
+                waiting_one_second = true;
+                Timeout.add (1000, () => {
+                    string datetime = new DateTime.now_local ().to_string();
+                    updateDescriptionStatement.bind_text (1, task.description);
+                    updateDescriptionStatement.bind_text (2, datetime);
+                    updateDescriptionStatement.bind_int (3, task.id);
+                    updateDescriptionStatement.step ();
+                    updateDescriptionStatement.reset ();
+                    waiting_one_second = false;
+                    return false;
+                });
+            }            
         }
     }
 }

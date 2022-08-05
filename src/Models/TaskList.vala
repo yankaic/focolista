@@ -38,6 +38,7 @@ namespace Agenda {
             ENTER,
             ID,
             TASK,
+            TOOLTIP,
             N_COLUMNS
         }
 
@@ -64,6 +65,7 @@ namespace Agenda {
                 typeof (string),
                 typeof (int),
                 typeof (Task),
+                typeof (string),
             };
 
             set_column_types (types);
@@ -84,12 +86,13 @@ namespace Agenda {
 
             set (iter,
                  Columns.TOGGLE, task.complete,
-                 Columns.TEXT, task.text,
+                 Columns.TEXT, task.title,
                  Columns.STRIKETHROUGH, task.complete,
                  Columns.SUBINFO, task.subinfo,
                  Columns.ENTER, "go-next-symbolic",
                  Columns.ID, task.id,
-                 Columns.TASK, task
+                 Columns.TASK, task,
+                 Columns.TOOLTIP, task.title + (task.hasDescription() ? ("\n\n" + task.description) : "" )
                 );
         }
         /*
@@ -257,7 +260,7 @@ namespace Agenda {
             foreach (Task task in tasks) {
                 this.insert_with_values (null, -1,
                      Columns.TOGGLE, task.complete,
-                     Columns.TEXT, task.text,
+                     Columns.TEXT, task.title,
                      Columns.SUBINFO, task.subinfo,
                      Columns.STRIKETHROUGH, task.complete,
                      Columns.ID, task.id,
@@ -382,7 +385,7 @@ namespace Agenda {
             get_iter (out iter, tree_path);
             get (iter, Columns.TASK, out task);
             set (iter, TaskList.Columns.TEXT, text);
-            task.text = text;
+            task.title = text;
             task_edited (task);
         }
 

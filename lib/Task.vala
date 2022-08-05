@@ -24,13 +24,13 @@ namespace Agenda {
     public class Task : GLib.Object {
         public int id { get; set; default = 0; }
         public bool complete { get; set; default = false; }
-        public string text { get; set; default = ""; }
+        public string title { get; set; default = ""; }
 
-        public Task.with_attributes (int id, bool complete, string text) {
+        public Task.with_attributes (int id, bool complete, string title) {
             Object (
                 id: id,
                 complete: complete,
-                text: text);
+                title: title);
         }
 
         public Task.from_string (string str) {
@@ -42,16 +42,16 @@ namespace Agenda {
                 this.complete = false;
             }
 
-            this.text = task_line[1];
+            this.title = task_line[1];
         }
 
         public string to_string () {
             string str;
 
             if (this.complete) {
-                str = "t," + this.text;
+                str = "t," + this.title;
             } else {
-                str = "f," + this.text;
+                str = "f," + this.title;
             }
 
             return str;
@@ -60,7 +60,7 @@ namespace Agenda {
         public static bool eq (Task task_1, Task task_2) {
             return (task_1.id == task_2.id) &&
                 (task_1.complete == task_2.complete) &&
-                (task_1.text == task_2.text);
+                (task_1.title == task_2.title);
         }
     }
 }

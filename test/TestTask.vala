@@ -47,19 +47,19 @@ public class TaskTests : Gee.TestCase {
         var test_task = new Agenda.Task.with_attributes (1, true, "bar");
         assert_true (test_task.id == 1);
         assert_true (test_task.complete == true);
-        assert_true (test_task.text == "bar");
+        assert_true (test_task.title == "bar");
     }
 
     public void test_to_string () {
         var test_task = new Agenda.Task.with_attributes (1, true, "bar");
-        assert_true (test_task.to_string () == "t," + test_task.text);
+        assert_true (test_task.to_string () == "t," + test_task.title);
     }
 
     public void test_from_string () {
         var task = new Agenda.Task.from_string ("t,this is a test task");
 
         assert_true (task.complete);
-        assert_true (task.text == "this is a test task");
+        assert_true (task.title == "this is a test task");
     }
 
     public void test_equal_to () {
@@ -70,7 +70,7 @@ public class TaskTests : Gee.TestCase {
 
         task_1.id = task_2.id;
         task_1.complete = task_2.complete;
-        task_1.text = task_2.text;
+        task_1.title = task_2.title;
         assert_true (Agenda.Task.eq (task_1, task_2));
     }
 }

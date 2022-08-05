@@ -24,7 +24,8 @@ namespace Agenda {
     public class Task : GLib.Object {
         public int id { get; set; default = 0; }
         public bool complete { get; set; default = false; }
-        public string text { get; set; default = ""; }
+        public string title { get; set; default = ""; }
+        public string description { get; set; default = ""; }
         public int parent_id { get; set; default = 0; }
         public int position { get; set; default = 0; }
         public string subinfo { get; set; default = ""; }
@@ -33,19 +34,23 @@ namespace Agenda {
         public Task () {
         }
 
-        public Task.with_attributes (int id, bool complete, string text) {
+        public Task.with_attributes (int id, bool complete, string title) {
             Object (
                 id: id,
                 complete: complete,
-                text: text);
+                title: title);
+        }
+
+        public bool hasDescription(){
+            return description != null && (description.replace (" ", "")).length > 0;
         }
 
         public string to_string () {
             string str = "id: ";
 
             str += id.to_string();
-            str += ", text: ";
-            str += text;
+            str += ", title: ";
+            str += title;
             str += " " + (complete ? " ✓": " ");
             str += ", parent: ";
             str += parent_id.to_string();
