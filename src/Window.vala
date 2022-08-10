@@ -41,12 +41,14 @@ namespace Agenda {
         private Granite.Widgets.Welcome agenda_welcome;
         private TaskView task_view;
         private TaskList task_list;
+        private Gtk.TextView description_view;
         private Gtk.ScrolledWindow scrolled_window;
         private Gtk.Entry task_entry;
         private HistoryList history_list;
         private Gtk.Button removeCompletedTasksButton;
         private Gtk.Button backButton;
         private Gtk.Button sortButton;
+        private Gtk.Button infoButton;
 
         private HashMap<int, Task> taskMap;
         private Task openTask;
@@ -112,6 +114,10 @@ namespace Agenda {
             backButton.clicked.connect(back_to_parent);
             header.pack_start(backButton);
 
+            infoButton = new Gtk.Button.from_icon_name ("help-info-symbolic", Gtk.IconSize.BUTTON);
+            infoButton.clicked.connect(toggleDescription);
+            header.pack_end(infoButton);
+
             //header.pack_end(removeCompletedTasksButton);
 
             sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic", Gtk.IconSize.BUTTON);
@@ -132,6 +138,29 @@ namespace Agenda {
             task_view = new TaskView.with_list (task_list);
             scrolled_window = new Gtk.ScrolledWindow (null, null);
             task_entry = new Gtk.Entry ();
+            
+            description_view = new Gtk.TextView ();
+            description_view.set_wrap_mode (Gtk.WrapMode.WORD);
+            description_view.margin_start = 10;
+            description_view.margin_end = 10;
+            description_view.margin_top = 10;
+            description_view.margin_bottom = 10;
+            description_view.buffer.changed.connect((event)=> {
+                if(description_view.has_focus) {
+                    openTask.description = description_view.buffer.text;
+                    backend.modify_description(openTask);
+                }
+            });
+
+            description_view.focus_in_event.connect ((e) => {
+                remove_accelerators_copy();
+                return false;
+            });
+
+            description_view.focus_out_event.connect ((e) => {
+                add_accelerators_copy();
+                return false;
+            });        
 
             history_list = new HistoryList ();
 
@@ -161,12 +190,44 @@ namespace Agenda {
             bool hasCompletedTasks = task_list.hasCompletedTasks();
             removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
             sortButton.set_sensitive(false);
+
+            var css_provider = new Gtk.CssProvider();
+            string style = """
+            textview {
+                background-color: @bg_color;
+            }""";
+
+            try {
+                css_provider.load_from_data(style, -1);
+            } catch (GLib.Error e) {
+                warning ("Failed to parse css style : %s", e.message);
+            }
+
+            Gtk.StyleContext.add_provider_for_screen(
+                Gdk.Screen.get_default(),
+                css_provider,
+                Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            );
+        }
+
+        private void toggleDescription(){
+            if (description_view.is_visible ()){
+                description_view.hide();
+                infoButton.set_tooltip_text(_("Show description"));
+            }
+            else {
+                if(!openTask.hasDescription())
+                    description_view.buffer.text = _("Description: ");
+                description_view.show();
+                infoButton.set_tooltip_text(_("Hide description"));
+            }
         }
 
         private void load_list () {
             task_list.disable_undo_recording ();
             openTask = backend.getHeadStack();
-            this.set_title (openTask.text);
+            this.set_title (openTask.title);
+            
             backButton.set_sensitive(openTask.parent_id > 0);
             var tasks = backend.list (openTask.id);
             foreach (Task task in tasks) {
@@ -272,7 +333,7 @@ namespace Agenda {
             });
 
             task_list.task_edited.connect ((task) => {
-                taskMap.get(task.id).text = task.text;
+                taskMap.get(task.id).title = task.title;
                 backend.update(task);
                 update ();
             });
@@ -316,9 +377,10 @@ namespace Agenda {
             var grid = new Gtk.Grid ();
             grid.expand = true;
             grid.row_homogeneous = false;
-            grid.attach (agenda_welcome, 0, 0, 1, 1);
-            grid.attach (scrolled_window, 0, 1, 1, 1);
-            grid.attach (task_entry, 0, 2, 1, 1);
+            grid.attach (description_view, 0, 0, 1, 1);
+            grid.attach (agenda_welcome, 0, 1, 1, 1);
+            grid.attach (scrolled_window, 0, 2, 1, 1);
+            grid.attach (task_entry, 0, 3, 1, 1);
 
             this.add (grid);
 
@@ -357,7 +419,7 @@ namespace Agenda {
             var external_clipboard = Gtk.Clipboard.get_default (Gdk.Display.get_default ());
             string text = "";
             foreach (Task task in clipboard){
-                text += task.text + "\n";
+                text += task.title + "\n";
             }
             external_clipboard.set_text (text, text.length - 1);
         }
@@ -429,8 +491,8 @@ namespace Agenda {
             parent.subtasksCount++;
             Task clone = new Task();
             clone.id = id++;
-            clone.text = task.text;
-            clone.text = task.text;
+            clone.title = task.title;
+            clone.description = task.description;
             clone.complete = task.complete;
             clone.position = parent.subtasksCount;
             clone.parent_id = parent.id;
@@ -470,7 +532,7 @@ namespace Agenda {
             task.parent_id = openTask.id;
 
             task_list.append_task (task);
-            history_list.add_item (task.text);
+            history_list.add_item (task.title);
             // When adding a new task rearrange the tasks
             task_entry.text = "";
             Agenda.settings.set_value ("task-sequence", generatedId);
@@ -553,6 +615,16 @@ namespace Agenda {
                 show_welcome ();
             else
                 hide_welcome ();
+
+            if (openTask.hasDescription()){
+                description_view.show();
+                description_view.buffer.text = openTask.description;
+                infoButton.set_tooltip_text(_("Hide description"));
+            }
+            else {
+                description_view.hide();
+                infoButton.set_tooltip_text(_("Show description"));               
+            }
         }
 
         void show_welcome () {

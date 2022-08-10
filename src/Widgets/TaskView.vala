@@ -86,7 +86,7 @@ namespace Agenda {
                 "Enter", enterbutton, "icon_name", TaskList.Columns.ENTER);
             append_column (column);
 
-            set_tooltip_column (TaskList.Columns.TEXT);
+            set_tooltip_column (TaskList.Columns.TOOLTIP);
 
             text.editing_started.connect ( (editable, path) => {
                 debug ("Editing started");
