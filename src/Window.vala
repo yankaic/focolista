@@ -431,25 +431,30 @@ namespace Agenda {
         }
 
         public void paste_tasks () {
-            if(clipboard.length <= 0)
-                return;
-            
-            switch(pasteMode) {
-                case PasteMode.CLONE:
-                    clone_tasks(openTask, clipboard);
-                    break;
-                case PasteMode.MOVE:                    
-                    move_tasks();
-                    break;
-                case PasteMode.LINK:                    
-                    link_tasks();
-                    break;
+            if (clipboard.length > 0) {
+                switch(pasteMode) {
+                    case PasteMode.CLONE:
+                        clone_tasks(openTask, clipboard);
+                        break;
+                    case PasteMode.MOVE:                    
+                        move_tasks();
+                        break;
+                    case PasteMode.LINK:                    
+                        link_tasks();
+                        break;
+                }
+                
+                clipboard = {};
+                task_list.clear_tasks();
+                backend.popStack();
+                task_list.open_task(openTask);
             }
-            
-            clipboard = {};
-            task_list.clear_tasks();
-            backend.popStack();
-            task_list.open_task(openTask); 
+            else {
+                var external_clipboard = Gtk.Clipboard.get_for_display (Gdk.Display.get_default (),
+                Gdk.SELECTION_CLIPBOARD);
+                string tasks = external_clipboard.wait_for_text ();
+                create_tasks_from_string(tasks);
+            }
         }
 
         private bool contains_ascending(Task task, Task possible_ascendant){
@@ -517,11 +522,18 @@ namespace Agenda {
         }
 
         public void append_task () {
-            Task task = new Task.with_attributes (
-                -1,
-                false,
-                task_entry.text);
-            create_task(task);
+            create_tasks_from_string(task_entry.text);
+        }
+
+        private void create_tasks_from_string(string tasks){
+            string[] lines = tasks.split("\n");
+            foreach(string line in lines){
+                Task task = new Task.with_attributes (
+                    -1,
+                    false,
+                    line);
+                create_task(task);
+            }
         }
 
         public void create_task(Task task){
