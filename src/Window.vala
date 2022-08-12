@@ -112,6 +112,7 @@ namespace Agenda {
             });
             backButton = new Gtk.Button.from_icon_name ("go-previous", Gtk.IconSize.BUTTON);
             backButton.clicked.connect(back_to_parent);
+            backButton.set_tooltip_text(_("Back"));
             header.pack_start(backButton);
 
             infoButton = new Gtk.Button.from_icon_name ("help-info-symbolic", Gtk.IconSize.BUTTON);
