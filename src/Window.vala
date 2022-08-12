@@ -50,7 +50,6 @@ namespace Agenda {
         private Gtk.Button sortButton;
         private Gtk.Button infoButton;
 
-        private HashMap<int, Task> taskMap;
         private Task openTask;
         private Task[] clipboard;
         private PasteMode pasteMode;
@@ -65,7 +64,6 @@ namespace Agenda {
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
-            taskMap = new HashMap<int, Task> ();
             this.app = app;
 
             var window_close_action = new SimpleAction ("close", null);
@@ -238,7 +236,6 @@ namespace Agenda {
             var tasks = backend.list (openTask.id);
             foreach (Task task in tasks) {
                 task_list.append_task (task);
-                taskMap.set(task.id, task);
             }
 
             string[] history = {};
@@ -327,7 +324,6 @@ namespace Agenda {
 
             task_list.open_task.connect ((task) => {
                 backend.putStack(task);
-                taskMap.clear();
                 load_list();
             });
 
@@ -339,19 +335,16 @@ namespace Agenda {
             });
 
             task_list.task_edited.connect ((task) => {
-                taskMap.get(task.id).title = task.title;
                 backend.update(task);
                 update ();
             });
 
             task_list.task_toggled.connect ((task) => {
                 backend.mark(task);
-                taskMap.get(task.id).complete = task.complete;
                 update ();
             });
 
             task_list.task_removed.connect ((task) => {
-                taskMap.unset(task.id);
                 backend.drop(task);
                 update ();
             });
@@ -359,8 +352,7 @@ namespace Agenda {
             task_list.positions_changed.connect (() => {
                 Task[] tasks = task_list.get_all_tasks();
                 int position = 1;
-                foreach (Task viewTask in tasks) {
-                    Task task = taskMap.get(viewTask.id);
+                foreach (Task task in tasks) {
                     if (task.position != position){
                         task.position = position;
                         backend.reorder(task);
@@ -415,7 +407,6 @@ namespace Agenda {
         public void back_to_parent(){
             backend.popStack();
             task_list.clear_tasks();
-            taskMap.clear();
             load_list();
         }
 
@@ -545,8 +536,8 @@ namespace Agenda {
         public void create_task(Task task){
             int generatedId = Agenda.settings.get_int ("task-sequence");
             task.id = generatedId++;
-            taskMap.set(task.id, task);
-            task.position = taskMap.size;
+            openTask.subtasksCount++;
+            task.position = openTask.subtasksCount;
             task.parent_id = openTask.id;
 
             task_list.append_task (task);
