@@ -71,3 +71,6 @@ msgstr "Mostrar descrição"
 
 msgid "Description: "
 msgstr "Descrição: "
+
+msgid "Back"
+msgstr "Voltar"
