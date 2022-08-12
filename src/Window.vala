@@ -195,7 +195,12 @@ namespace Agenda {
             string style = """
             textview {
                 background-color: @bg_color;
-            }""";
+                font-size: 1.05em;
+            }
+            .task-entry{
+                font-size: 1.05em;
+            }
+            """;
 
             try {
                 css_provider.load_from_data(style, -1);

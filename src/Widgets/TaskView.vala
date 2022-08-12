@@ -66,6 +66,7 @@ namespace Agenda {
             text.wrap_mode = Pango.WrapMode.WORD_CHAR;
             text.ellipsize_set = true;
             text.ellipsize = Pango.EllipsizeMode.END;
+            text.scale = 1.03;
 
             column = new Gtk.TreeViewColumn.with_attributes ("Task", text,
                 "text", TaskList.Columns.TEXT,
@@ -75,6 +76,12 @@ namespace Agenda {
 
             subinfo.ypad = 6;
             subinfo.editable = false;
+            
+            /*  
+            var foreground_color = subinfo.foreground_rgba.copy();
+            foreground_color.alpha = 0.5;
+            subinfo.foreground_rgba = foreground_color;
+            */
 
             column = new Gtk.TreeViewColumn.with_attributes ("SUBINFO", subinfo,
                 "text", TaskList.Columns.SUBINFO);     
