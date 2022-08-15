@@ -26,7 +26,6 @@ namespace Agenda {
         public bool complete { get; set; default = false; }
         public string title { get; set; default = ""; }
         public string description { get; set; default = ""; }
-        public int parent_id { get; set; default = 0; }
         public int position { get; set; default = 0; }
         public string subinfo { get; set; default = ""; }
         public int subtasksCount { get; set; default = 0; }
@@ -52,8 +51,6 @@ namespace Agenda {
             str += ", title: ";
             str += title;
             str += " " + (complete ? " ✓": " ");
-            str += ", parent: ";
-            str += parent_id.to_string();
 
             return str;
         }
