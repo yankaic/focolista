@@ -36,7 +36,7 @@ namespace Agenda {
         private GLib.Settings privacy_setting = new GLib.Settings (
             "org.gnome.desktop.privacy");
 
-        private FileBackend backend;
+        private SqliteBackend backend;
 
         private Granite.Widgets.Welcome agenda_welcome;
         private TaskView task_view;
@@ -168,7 +168,7 @@ namespace Agenda {
                 Agenda.settings.set_boolean ("first-time", false);
             }
 
-            backend = new FileBackend ();
+            backend = new SqliteBackend ();
             stack_size = backend.getStackSize();
             load_list ();
             setup_ui ();

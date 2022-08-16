@@ -20,7 +20,7 @@
 ***/
 using Sqlite;
 namespace Agenda {
-    public class FileBackend : GLib.Object, Backend {
+    public class SqliteBackend : GLib.Object, Backend {
 
         private Sqlite.Database database;
         private Sqlite.Statement insertStatement;
@@ -40,7 +40,7 @@ namespace Agenda {
         private Sqlite.Statement putStackStatement;
         private Sqlite.Statement stackSizeStatement;
 
-        public FileBackend () {
+        public SqliteBackend () {
             string user_data = Environment.get_user_data_dir ();
 
             File dir = File.new_for_path (user_data).get_child ("agenda");
