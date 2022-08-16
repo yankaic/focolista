@@ -494,14 +494,11 @@ namespace Agenda {
         }
 
         private Task create_clone(Task task, Task parent){
-            int id = Agenda.settings.get_int ("task-sequence");
             Task clone = new Task();
-            clone.id = id++;
             clone.title = task.title;
             clone.description = task.description;
             clone.complete = task.complete;
             backend.create(clone, parent);
-            Agenda.settings.set_value ("task-sequence", id);
             return clone;
         }
 
@@ -536,14 +533,10 @@ namespace Agenda {
         }
 
         public void create_task(Task task){
-            int generatedId = Agenda.settings.get_int ("task-sequence");
-            task.id = generatedId++;
-
             task_list.append_task (task);
             history_list.add_item (task.title);
             // When adding a new task rearrange the tasks
             task_entry.text = "";
-            Agenda.settings.set_value ("task-sequence", generatedId);
             backend.create(task, openTask);
             update ();
         }
