@@ -49,7 +49,7 @@ agenda_client_sources = files(
     'src/Window.vala',
     'src/Widgets/TaskView.vala',
     'src/Backend/BackendInterface.vala',
-    'src/Backend/FileBackend.vala',
+    'src/Backend/SqliteBackend.vala',
     'src/Models/HistoryList.vala',
     'src/Models/TaskListHistory.vala',
     'src/Models/TaskList.vala',
