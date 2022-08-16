@@ -33,6 +33,7 @@ namespace Agenda {
         private Sqlite.Statement reorderStatement;
         private Sqlite.Statement deleteStatement;
         private Sqlite.Statement moveStatement;
+        private Sqlite.Statement sequenceStatement;
 
         private Sqlite.Statement headStackStatement;
         private Sqlite.Statement popStackStatement;
@@ -111,8 +112,11 @@ namespace Agenda {
             query = "insert into stack values ((select count (id) + 1 from stack), $id)";
             database.prepare_v2 (query, query.length, out putStackStatement);
 
-            query = "select count(id) from stack;";
+            query = "select count(id) from stack";
             database.prepare_v2 (query, query.length, out stackSizeStatement);
+
+            query = "select max(id) + 1 from tasks";
+            database.prepare_v2 (query, query.length, out sequenceStatement);
         }
 
         public Task[] list (Task parent) {
@@ -163,6 +167,11 @@ namespace Agenda {
         public void create (Task task, Task parent){
             string datetime = new DateTime.now_local ().to_string();
             parent.subtasksCount++;
+
+            sequenceStatement.step();
+            task.id = sequenceStatement.column_int (0);
+            sequenceStatement.reset();
+
             insertStatement.bind_int (1, task.id);
             insertStatement.bind_text (2, task.title);
             insertStatement.bind_text (3, task.description);
@@ -233,9 +242,8 @@ namespace Agenda {
         }
 
         public Task getHeadStack () {
-            int id;
             headStackStatement.step();
-            id = headStackStatement.column_int (0);
+            int id = headStackStatement.column_int (0);
             headStackStatement.reset();
             return find(id);
         }
