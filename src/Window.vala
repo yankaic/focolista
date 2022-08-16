@@ -533,11 +533,10 @@ namespace Agenda {
         }
 
         public void create_task(Task task){
+            backend.create(task, openTask);
             task_list.append_task (task);
             history_list.add_item (task.title);
-            // When adding a new task rearrange the tasks
             task_entry.text = "";
-            backend.create(task, openTask);
             update ();
         }
 
