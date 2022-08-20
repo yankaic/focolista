@@ -20,18 +20,34 @@
 ***/
 
 namespace Agenda {
-    public interface Backend : GLib.Object {
-        public abstract Task[] list (Task parent);
-        public abstract Task find (int id);
-        public abstract void create (Task task, Task parent);
-        public abstract void update (Task task);
-        public abstract void drop (Task task, Task parent);
-        public abstract void mark (Task task);
-        public abstract void changeParent(Task task, Task old_parent, Task new_parent);
-        public abstract void reorder (Task task, Task parent);
-        public abstract void create_link (Task task, Task new_parent);
-        public abstract Stack readStack ();
-        public abstract void writeStack (Stack stack);
-        public abstract void modify_description(Task task);
+
+    public class Stack : GLib.Object {
+        private Task[] tasks;
+
+        public Stack () {
+            tasks = {};
+        }
+
+        public Task pop() {
+            Task task  = peek();
+            tasks = tasks[0 : tasks.length - 1];
+            return task;
+        }
+
+        public void push(Task task) {
+            tasks += task;
+        }
+
+        public Task peek () {
+            return tasks[tasks.length - 1 : tasks.length][0];
+        }
+
+        public int size () {
+            return tasks.length;
+        }
+
+        public bool is_empty() {
+            return tasks.length == 0;
+        }
     }
 }

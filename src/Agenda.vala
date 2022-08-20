@@ -27,7 +27,17 @@ namespace Agenda {
     public class Agenda : Gtk.Application {
         public static GLib.Settings settings;
         private static Agenda app;
-        private AgendaWindow window = null;
+        private AgendaWindow[] windows = {};        
+        public static Task[] clipboard = {};
+
+        public static PasteMode paste_mode;
+        public static Task copy_source;
+
+        public enum PasteMode {
+            CLONE,
+            MOVE,
+            LINK
+        }
 
         static construct {
             settings = new GLib.Settings ("com.github.dahenson.agenda");
@@ -39,15 +49,18 @@ namespace Agenda {
         }
 
         protected override void activate () {
-            if (window != null) {
-                window.present ();
-                return;
-            }
-
-            window = new AgendaWindow (this);
-            window.delete_event.connect (window.main_quit);
+            if(windows.length > 0)
+                windows[windows.length - 1].save_state();
+            AgendaWindow window = new AgendaWindow (this);
             window.show_all ();
             window.update ();
+            window.refresh_window.connect(refresh_windows);
+            windows += window;
+
+            window.on_quit.connect(close_window);
+
+            window.broadcast_task.connect(append_task);
+            window.broadcast_task_update.connect(update_task);
 
             if (elementary_stylesheet ()) {
                 var elementary_provider = new Gtk.CssProvider ();
@@ -58,6 +71,46 @@ namespace Agenda {
                     elementary_provider,
                     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
             }
+        }
+
+        private void close_window (AgendaWindow window) {
+            AgendaWindow[] window_list = {};
+            foreach(AgendaWindow window_in_list in windows){
+                if(window_in_list != window)
+                    window_list += window_in_list;
+            }
+            windows = window_list;
+        }
+
+        private void append_task(Task task, Task parent) {
+            Timeout.add (100, () => {
+                foreach(AgendaWindow window in windows){
+                    if(window.openTask.id == parent.id)
+                        window.create_task_view(task);
+                }
+                return false;
+            });            
+        }
+
+        private void update_task(Task task) {
+            Timeout.add (100, () => {
+                foreach(AgendaWindow window in windows) {
+                    window.update_task(task);
+                }
+                return false;
+            });            
+        }
+
+        private void refresh_windows(Task task, AgendaWindow source) {
+            Timeout.add (100, () => {
+                foreach(AgendaWindow window in windows){
+                    if(window != source && window.openTask.id == task.id){
+                        window.refresh_task();
+                    }
+                }
+                return false;
+            });
+            
         }
 
         public static Agenda get_instance () {
