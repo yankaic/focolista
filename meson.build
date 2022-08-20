@@ -54,6 +54,7 @@ agenda_client_sources = files(
     'src/Models/TaskListHistory.vala',
     'src/Models/TaskList.vala',
     'src/Models/Task.vala',
+    'src/Models/Stack.vala',
 )
 
 agenda_deps = [

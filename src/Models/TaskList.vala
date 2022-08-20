@@ -220,6 +220,28 @@ namespace Agenda {
             return tasks;
         }
 
+        public void update_task(Task task) {
+            Gtk.TreeIter iter;
+            bool valid = get_iter_first (out iter);
+
+            while (valid) {
+                Task subtask = get_task (iter);
+                if (task.id == subtask.id){
+                    if (task.title != subtask.title){
+                        subtask.title = task.title;
+                        set (iter, TaskList.Columns.TEXT, task.title);
+                    }
+                    if (task.complete != subtask.complete){
+                        subtask.complete = task.complete;
+                        set (iter,
+                            TaskList.Columns.TOGGLE, task.complete,
+                            TaskList.Columns.STRIKETHROUGH, task.complete);
+                    }
+                }
+                valid = iter_next (ref iter);
+            }
+        }
+
         public Task get_task (Gtk.TreeIter iter) {
             Task task;
             this.get (iter, Columns.TASK, out task);

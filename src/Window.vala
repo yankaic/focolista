@@ -37,6 +37,7 @@ namespace Agenda {
             "org.gnome.desktop.privacy");
 
         private SqliteBackend backend;
+        private Stack stack;
 
         private Granite.Widgets.Welcome agenda_welcome;
         private TaskView task_view;
@@ -50,22 +51,22 @@ namespace Agenda {
         private Gtk.Button sortButton;
         private Gtk.Button infoButton;
 
-        private Task openTask;
-        private Task[] clipboard;
-        private PasteMode pasteMode;
-        private Task copySource;
+        public Task openTask;
         private Agenda app;
-        private int stack_size;
 
-        public enum PasteMode {
-            CLONE,
-            MOVE,
-            LINK
-        }
+        private int xpos;
+        private int ypos;
+        private Gdk.Rectangle rect;
+
+        public signal void on_quit(AgendaWindow window);
+        public signal void refresh_window(Task task, AgendaWindow source);
+        public signal void broadcast_task(Task task, Task parent);
+        public signal void broadcast_task_update(Task task);        
 
         public AgendaWindow (Agenda app) {
             Object (application: app);
             this.app = app;
+            delete_event.connect (main_quit);
 
             var window_close_action = new SimpleAction ("close", null);
             var app_quit_action = new SimpleAction ("quit", null);
@@ -149,6 +150,7 @@ namespace Agenda {
                 if(description_view.has_focus) {
                     openTask.description = description_view.buffer.text;
                     backend.modify_description(openTask);
+                    broadcast_task_update(openTask);
                 }
             });
 
@@ -169,7 +171,7 @@ namespace Agenda {
             }
 
             backend = new SqliteBackend ();
-            stack_size = backend.getStackSize();
+            stack = backend.readStack();
             load_list ();
             setup_ui ();
 
@@ -181,10 +183,10 @@ namespace Agenda {
 
             copy_action.activate.connect(copy_tasks);
             cut_action.activate.connect(() => {
-                prepare_clipboard(PasteMode.MOVE);
+                prepare_clipboard(Agenda.PasteMode.MOVE);
             });
             link_action.activate.connect(() => {
-                prepare_clipboard(PasteMode.LINK);
+                prepare_clipboard(Agenda.PasteMode.LINK);
             });
 
             bool hasCompletedTasks = task_list.hasCompletedTasks();
@@ -228,12 +230,25 @@ namespace Agenda {
             }
         }
 
+        private HashMap<int, bool> waiting_one_milisecond = new HashMap<int, bool>();
+        private void emit_refresh_window(Task task){
+            if (!waiting_one_milisecond.has_key(task.id) || !waiting_one_milisecond.get(task.id)) {
+                waiting_one_milisecond.set(task.id, true);
+                Timeout.add (1, () => {
+                    refresh_window(task, this);
+                    waiting_one_milisecond.set(task.id, false);
+                    return false;
+                });
+            }   
+        }
+
         private void load_list () {
             task_list.disable_undo_recording ();
-            openTask = backend.getHeadStack();
+            openTask = stack.peek();
+            openTask = backend.find(openTask.id);
             this.set_title (openTask.title);
             
-            backButton.set_sensitive(stack_size > 1);
+            backButton.set_sensitive(stack.size() > 1);
             Task[] tasks = backend.list (openTask);
             openTask.subtasksCount = tasks.length;
             foreach (Task task in tasks) {
@@ -325,8 +340,7 @@ namespace Agenda {
             task_view.text_editing_ended.connect(add_accelerators_copy);
 
             task_list.open_task.connect ((task) => {
-                backend.putStack(task);
-                stack_size++;
+                stack.push(task);
                 load_list();
             });
 
@@ -340,11 +354,13 @@ namespace Agenda {
             task_list.task_edited.connect ((task) => {
                 backend.update(task);
                 update ();
+                broadcast_task_update(task);
             });
 
             task_list.task_toggled.connect ((task) => {
                 backend.mark(task);
                 update ();
+                broadcast_task_update(task);
             });
 
             task_list.task_removed.connect ((task) => {
@@ -363,6 +379,7 @@ namespace Agenda {
                     position++;
                 }
                 update ();
+                emit_refresh_window(openTask);
             });
 
             this.key_press_event.connect (key_down_event);
@@ -393,6 +410,20 @@ namespace Agenda {
             task_entry.grab_focus ();
         }
 
+        public void update_task(Task task) {
+            if (openTask.id == task.id) {
+                if(openTask.title != task.title) {
+                    openTask.title = task.title;
+                    this.set_title(task.title);
+                }
+                if(openTask.description != task.description){
+                    openTask.description = task.description;
+                    update();
+                }
+            }
+            task_list.update_task(task);
+        }
+
         public void remove_accelerators_copy () {
             app.set_accels_for_action ("win.cut", {});
             app.set_accels_for_action ("win.copy", {});
@@ -408,48 +439,45 @@ namespace Agenda {
         }
 
         public void back_to_parent(){
-            backend.popStack();
-            stack_size--;
+            stack.pop();
             task_list.clear_tasks();
             load_list();
         }
 
         private void copy_tasks(){
-            prepare_clipboard(PasteMode.CLONE);
+            prepare_clipboard(Agenda.PasteMode.CLONE);
             
             var external_clipboard = Gtk.Clipboard.get_default (Gdk.Display.get_default ());
             string text = "";
-            foreach (Task task in clipboard){
+            foreach (Task task in Agenda.clipboard){
                 text += task.title + "\n";
             }
             external_clipboard.set_text (text, text.length - 1);
         }
 
-        public void prepare_clipboard (PasteMode mode) {
-            clipboard = task_view.getSeletedTasks();
-            pasteMode = mode;
-            copySource = openTask;
+        public void prepare_clipboard (Agenda.PasteMode mode) {
+            Agenda.clipboard = task_view.getSeletedTasks();
+            Agenda.paste_mode = mode;
+            Agenda.copy_source = openTask;
         }
 
         public void paste_tasks () {
-            if (clipboard.length > 0) {
-                switch(pasteMode) {
-                    case PasteMode.CLONE:
-                        clone_tasks(openTask, clipboard);
+            if (Agenda.clipboard.length > 0) {
+                switch(Agenda.paste_mode) {
+                    case Agenda.PasteMode.CLONE:
+                        clone_tasks(openTask, Agenda.clipboard);
                         break;
-                    case PasteMode.MOVE:                    
+                    case Agenda.PasteMode.MOVE:                    
                         move_tasks();
                         break;
-                    case PasteMode.LINK:                    
+                    case Agenda.PasteMode.LINK:                    
                         link_tasks();
                         break;
                 }
                 
-                clipboard = {};
-                task_list.clear_tasks();
-                backend.popStack();
-                stack_size--;
-                task_list.open_task(openTask);
+                Agenda.clipboard = {};
+                emit_refresh_window(openTask);
+                refresh_task();
             }
             else {
                 var external_clipboard = Gtk.Clipboard.get_for_display (Gdk.Display.get_default (),
@@ -457,6 +485,12 @@ namespace Agenda {
                 string tasks = external_clipboard.wait_for_text ();
                 create_tasks_from_string(tasks);
             }
+        }
+
+        public void refresh_task() {
+            task_list.clear_tasks();
+            stack.pop();
+            task_list.open_task(openTask);
         }
 
         private bool contains_ascending(Task task, Task possible_ascendant){
@@ -480,7 +514,7 @@ namespace Agenda {
         }
 
         private void link_tasks() {
-            foreach(Task task in clipboard) {
+            foreach(Task task in Agenda.clipboard) {
                 backend.create_link(task, openTask);
             }
         }
@@ -503,18 +537,19 @@ namespace Agenda {
         }
 
         public void move_tasks(){
-            if(contains_ascending(openTask, clipboard[0]))
+            if(contains_ascending(openTask, Agenda.clipboard[0]))
                 return;           
-            foreach (Task task in clipboard) {
-                backend.changeParent(task, copySource, openTask);
+            foreach (Task task in Agenda.clipboard) {
+                backend.changeParent(task, Agenda.copy_source, openTask);
             }
 
-            Task[] sourcelist = backend.list (copySource);
+            Task[] sourcelist = backend.list (Agenda.copy_source);
             int position = 1;
             foreach (Task task in sourcelist) {
                 task.position = position++;
-                backend.reorder(task, copySource);
+                backend.reorder(task, Agenda.copy_source);
             }
+            emit_refresh_window(Agenda.copy_source);
         }
 
         public void append_task () {
@@ -534,9 +569,13 @@ namespace Agenda {
 
         public void create_task(Task task){
             backend.create(task, openTask);
-            task_list.append_task (task);
             history_list.add_item (task.title);
             task_entry.text = "";
+            broadcast_task(task, openTask);
+        }
+
+        public void create_task_view(Task task) {
+            task_list.append_task (task);
             update ();
         }
 
@@ -575,9 +614,17 @@ namespace Agenda {
         }
 
         public bool main_quit () {
+            save_state();
+            on_quit(this);
             this.destroy ();
 
-            return false;
+            return true;
+        }
+
+        public void save_state () {
+            Agenda.settings.set_value ("window-position", new int[] { xpos, ypos });
+            Agenda.settings.set_value ("window-size", new int[] { rect.width, rect.height });
+            backend.writeStack(stack);
         }
 
         public bool button_down_event(Gdk.EventButton e){
@@ -595,7 +642,7 @@ namespace Agenda {
                     }
                     break;
                 case Gdk.Key.Delete:
-                    if (!task_entry.has_focus && !task_view.is_editing) {
+                    if (!(task_entry.has_focus || task_view.is_editing || description_view.has_focus)) {
                         task_view.remove_selected_tasks ();
                         update ();
                     }
@@ -645,21 +692,8 @@ namespace Agenda {
             configure_id = Timeout.add (100, () => {
                 configure_id = 0;
 
-                int x, y;
-                Gdk.Rectangle rect;
-
-                get_position (out x, out y);
+                get_position (out xpos, out ypos);
                 get_allocation (out rect);
-
-                debug ("Saving window position to %d, %d", x, y);
-                Agenda.settings.set_value (
-                    "window-position", new int[] { x, y });
-
-                debug (
-                    "Saving window size of width and height: %d, %d",
-                    rect.width, rect.height);
-                Agenda.settings.set_value (
-                    "window-size", new int[] { rect.width, rect.height });
 
                 return false;
             });

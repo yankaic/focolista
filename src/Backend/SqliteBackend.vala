@@ -35,10 +35,9 @@ namespace Agenda {
         private Sqlite.Statement moveStatement;
         private Sqlite.Statement sequenceStatement;
 
-        private Sqlite.Statement headStackStatement;
-        private Sqlite.Statement popStackStatement;
+        private Sqlite.Statement readStackStatement;
+        private Sqlite.Statement clearStackStatement;
         private Sqlite.Statement putStackStatement;
-        private Sqlite.Statement stackSizeStatement;
 
         public SqliteBackend () {
             string user_data = Environment.get_user_data_dir ();
@@ -103,17 +102,14 @@ namespace Agenda {
             query = "update edge set parent_id = $new_parent_id, position = $position, updated_at = $datetime where child_id = $id and parent_id = $parent_id";
             database.prepare_v2 (query, query.length, out moveStatement);
 
-            query = "select task_id from stack order by id desc limit 1";
-            database.prepare_v2 (query, query.length, out headStackStatement);
+            query = "delete from stack";
+            database.prepare_v2 (query, query.length, out clearStackStatement);
 
-            query = "delete from stack where id = (select id from stack order by id desc limit 1)";
-            database.prepare_v2 (query, query.length, out popStackStatement);
+            query = "select task_id from stack order by id";
+            database.prepare_v2 (query, query.length, out readStackStatement);
 
             query = "insert into stack values ((select count (id) + 1 from stack), $id)";
             database.prepare_v2 (query, query.length, out putStackStatement);
-
-            query = "select count(id) from stack";
-            database.prepare_v2 (query, query.length, out stackSizeStatement);
 
             query = "select max(id) + 1 from tasks";
             database.prepare_v2 (query, query.length, out sequenceStatement);
@@ -241,31 +237,36 @@ namespace Agenda {
             insertConnectionStatement.reset ();
         }
 
-        public Task getHeadStack () {
-            headStackStatement.step();
-            int id = headStackStatement.column_int (0);
-            headStackStatement.reset();
-            return find(id);
+        public Stack readStack () {
+            Stack stack = new Stack();
+            while (readStackStatement.step () == Sqlite.ROW) {
+                Task task = new Task ();
+                task.id =  readStackStatement.column_int (0);
+                stack.push(task);
+            }
+            readStackStatement.reset ();
+            return stack;
+        }
+        
+        public void writeStack (Stack stack){
+            Stack inverse = new Stack();
+            while(!stack.is_empty())
+                inverse.push(stack.pop());
+            
+            clearStackStatement.step();
+            clearStackStatement.reset();
+
+            while(!inverse.is_empty()){
+                Task task = inverse.pop();
+                stack.push(task);
+                store_in_stack(task);
+            }
         }
 
-        public Task popStack () {
-            Task task = getHeadStack();
-            popStackStatement.step();
-            popStackStatement.reset();
-            return task;            
-        }
-
-        public void putStack (Task task) {
+        private void store_in_stack (Task task) {
             putStackStatement.bind_int(1, task.id);            
             putStackStatement.step();
             putStackStatement.reset();
-        }
-
-        public int getStackSize(){
-            stackSizeStatement.step();
-            int size = stackSizeStatement.column_int (0);
-            stackSizeStatement.reset();
-            return size;
         }
 
         private bool waiting_one_second = false;
