@@ -93,7 +93,7 @@ namespace Agenda {
             query = "update edge set position = $position, updated_at = $updated_at where parent_id = $parent_id and child_id = $child_id";
             database.prepare_v2 (query, query.length, out reorderStatement);
 
-            query = "select task.id, task.title, task.description, task.completed_at, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where parent_connection.parent_id = $parentId GROUP by task.id ORDER by parent_connection.position";
+            query = "select task.id, task.title, task.description, task.completed_at, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count, task.markable from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where parent_connection.parent_id = $parentId GROUP by task.id ORDER by parent_connection.position";
             database.prepare_v2 (query, query.length, out selectStatement);
 
             query = "select id, title, description, completed_at from tasks where id = $id";
@@ -128,9 +128,13 @@ namespace Agenda {
                 task.position =  selectStatement.column_int (4);
                 completed = selectStatement.column_int (5);
                 count = selectStatement.column_int (6);
+                int markable = selectStatement.column_int (7);
+                stderr.printf(markable.to_string());
+                task.markable = selectStatement.column_int (7) > 0;
                 task.subinfo = count > 0 ? "(" + completed.to_string() + "/" + count.to_string() + ")": "";
                 task.subtasksCount = count;
                 tasks += task;
+                stderr.printf("\nmarcável: "+ task.to_string() + " : "+ (task.markable ? "sim" : "não"));
             }
             selectStatement.reset ();
             return tasks;

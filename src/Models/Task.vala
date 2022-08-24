@@ -23,6 +23,7 @@ namespace Agenda {
 
     public class Task : GLib.Object {
         public int id { get; set; default = 0; }
+        public bool markable { get; set; default = true; }
         public bool complete { get; set; default = false; }
         public string title { get; set; default = ""; }
         public string description { get; set; default = ""; }

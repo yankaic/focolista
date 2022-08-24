@@ -37,6 +37,7 @@ namespace Agenda {
             SUBINFO,
             ENTER,
             ID,
+            MARKABLE,
             TASK,
             TOOLTIP,
             N_COLUMNS
@@ -64,6 +65,7 @@ namespace Agenda {
                 typeof (string),
                 typeof (string),
                 typeof (int),
+                typeof (bool),
                 typeof (Task),
                 typeof (string),
             };
@@ -91,6 +93,7 @@ namespace Agenda {
                  Columns.SUBINFO, task.subinfo,
                  Columns.ENTER, "go-next-symbolic",
                  Columns.ID, task.id,
+                 Columns.MARKABLE, task.markable,
                  Columns.TASK, task,
                  Columns.TOOLTIP, task.title + (task.hasDescription() ? ("\n\n" + task.description) : "" )
                 );

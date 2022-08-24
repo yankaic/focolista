@@ -52,10 +52,13 @@ namespace Agenda {
 
             // Setup the TOGGLE column
             toggle.xpad = 6;
-            column = new Gtk.TreeViewColumn.with_attributes ("Toggle",
-                                                             toggle,
-                                                             "active",
-                                                             TaskList.Columns.TOGGLE);
+            column = new Gtk.TreeViewColumn.with_attributes (
+                "Toggle",
+                toggle,
+                "active",
+                TaskList.Columns.TOGGLE,
+                "visible", TaskList.Columns.MARKABLE
+            );
             append_column (column);
 
             // Setup the TEXT column
