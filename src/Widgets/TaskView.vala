@@ -84,8 +84,7 @@ namespace Agenda {
             */
 
             column = new Gtk.TreeViewColumn.with_attributes ("SUBINFO", subinfo,
-                "text", TaskList.Columns.SUBINFO);     
-            append_column (column);
+                "text", TaskList.Columns.SUBINFO);
 
             // Setup the DRAGHANDLE column
             enterbutton.xpad = 6;
