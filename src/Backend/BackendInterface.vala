@@ -33,5 +33,6 @@ namespace Agenda {
         public abstract Stack readStack ();
         public abstract void writeStack (Stack stack);
         public abstract void modify_description(Task task);
+        public abstract Task[] search(string text);
     }
 }

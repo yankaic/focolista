@@ -26,6 +26,7 @@ namespace Agenda {
         private Sqlite.Statement insertStatement;
         private Sqlite.Statement insertConnectionStatement;
         private Sqlite.Statement selectStatement;
+        private Sqlite.Statement searchStatement;
         private Sqlite.Statement findStatement;
         private Sqlite.Statement updateStatement;
         private Sqlite.Statement updateDescriptionStatement;
@@ -96,6 +97,9 @@ namespace Agenda {
             query = "select task.id, task.title, task.description, task.completed_at, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task left join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where parent_connection.parent_id = $parentId GROUP by task.id ORDER by parent_connection.position";
             database.prepare_v2 (query, query.length, out selectStatement);
 
+            query = "select task.id, task.title, task.description, task.completed_at, parent_connection.position as position, count (child_task.completed_at) as completed_count, COUNT(child_task.id) as subtasks_count from tasks task join edge parent_connection on parent_connection.child_id = task.id and parent_connection.deleted_at is null left join edge child_connection on child_connection.parent_id = task.id and child_connection.deleted_at is null left join tasks child_task on child_connection.child_id = child_task.id where task.title like $search GROUP by task.id ORDER by task.id asc";
+            database.prepare_v2 (query, query.length, out searchStatement);
+
             query = "select id, title, description, completed_at from tasks where id = $id";
             database.prepare_v2 (query, query.length, out findStatement);
 
@@ -116,23 +120,33 @@ namespace Agenda {
         }
 
         public Task[] list (Task parent) {
+            selectStatement.bind_int (1, parent.id);
+            return load_tasks(selectStatement);
+        }
+
+        public Task[] search(string text){
+            string search = "%" + text + "%";
+            searchStatement.bind_text(1, search);
+            return load_tasks(searchStatement);
+        }
+
+        private Task[] load_tasks(Sqlite.Statement statement){
             Task[] tasks = {};
             int completed, count;
-            selectStatement.bind_int (1, parent.id);
-            while (selectStatement.step () == Sqlite.ROW) {
+            while (statement.step () == Sqlite.ROW) {
                 Task task = new Task ();
-                task.id =  selectStatement.column_int (0);
-                task.title =  selectStatement.column_text (1);
-                task.description =  selectStatement.column_text (2);
-                task.complete = selectStatement.column_text (3) != null;
-                task.position =  selectStatement.column_int (4);
-                completed = selectStatement.column_int (5);
-                count = selectStatement.column_int (6);
+                task.id =  statement.column_int (0);
+                task.title =  statement.column_text (1);
+                task.description =  statement.column_text (2);
+                task.complete = statement.column_text (3) != null;
+                task.position =  statement.column_int (4);
+                completed = statement.column_int (5);
+                count = statement.column_int (6);
                 task.subinfo = count > 0 ? "(" + completed.to_string() + "/" + count.to_string() + ")": "";
                 task.subtasksCount = count;
                 tasks += task;
             }
-            selectStatement.reset ();
+            statement.reset ();
             return tasks;
         }
 

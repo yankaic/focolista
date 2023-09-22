@@ -51,12 +51,21 @@ namespace Agenda {
         private Gtk.Button sortButton;
         private Gtk.Button infoButton;
 
+        private Gtk.HeaderBar header;
+
+        private Gtk.ToggleButton search_toggle_button;
+        private Gtk.Revealer search_revealer;
+        private Gtk.SearchEntry search_entry;
+
         public Task openTask;
+        private Task SEARCH_TASK;
         private Agenda app;
 
         private int xpos;
         private int ypos;
         private Gdk.Rectangle rect;
+        private Gtk.Grid grid;
+        private bool showingTaskEntry = true;
 
         public signal void on_quit(AgendaWindow window);
         public signal void refresh_window(Task task, AgendaWindow source);
@@ -97,11 +106,47 @@ namespace Agenda {
 
             this.get_style_context ().add_class ("rounded");
 
-            var header = new Gtk.HeaderBar ();
+            header = new Gtk.HeaderBar ();
             header.show_close_button = true;
             header.get_style_context ().add_class ("titlebar");
             header.get_style_context ().add_class (Gtk.STYLE_CLASS_FLAT);
             this.set_titlebar (header);
+
+            SEARCH_TASK = new Task.with_attributes (-1, false, "Pesquisa");
+
+            search_entry = new Gtk.SearchEntry ();
+            search_entry.valign = Gtk.Align.CENTER;
+            search_entry.expand = true;
+            search_entry.visible = true;
+            search_entry.placeholder_text = "Pesquise aqui";
+            search_entry.activate.connect (search_tasks);
+            
+            Gtk.SearchBar searchbar = new Gtk.SearchBar();
+            searchbar.search_mode_enabled = true;
+            searchbar.visible = true;
+            searchbar.expand = true;
+            searchbar.show_close_button = false;
+
+            Gtk.Box searchbox = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+            searchbox.visible = true;
+            searchbox.expand = true;   
+            searchbox.margin_start = 5;
+            searchbox.margin_end = 5;
+            searchbox.margin_top = 6;
+            searchbox.margin_bottom = 6;         
+
+            search_revealer = new Gtk.Revealer();
+            search_revealer.visible = true;
+            search_revealer.expand = false;
+            search_revealer.set_transition_type (Gtk.Revealer.SLIDE_DOWN);
+            search_revealer.set_reveal_child(false);
+
+            search_revealer.add(searchbox);
+            searchbox.add(search_entry);
+
+            search_toggle_button = new Gtk.ToggleButton();
+            search_toggle_button.set_image(new Gtk.Image.from_icon_name("search", Gtk.IconSize.BUTTON));
+            search_toggle_button.clicked.connect(toggle_search);
 
             removeCompletedTasksButton = new Gtk.Button.from_icon_name ("user-trash-symbolic", Gtk.IconSize.BUTTON);
             removeCompletedTasksButton.clicked.connect (() => {
@@ -118,10 +163,11 @@ namespace Agenda {
             infoButton = new Gtk.Button.from_icon_name ("help-info-symbolic", Gtk.IconSize.BUTTON);
             infoButton.clicked.connect(toggleDescription);
             header.pack_end(infoButton);
+            header.pack_end(search_toggle_button);
 
             //header.pack_end(removeCompletedTasksButton);
 
-            sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic", Gtk.IconSize.BUTTON);
+            sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic");
             sortButton.clicked.connect (() => {
                 if (task_list != null) {
                     task_list.sort_tasks ();
@@ -217,6 +263,20 @@ namespace Agenda {
             );
         }
 
+        private void toggle_search() {
+            search_revealer.set_reveal_child(is_search_mode());
+            if (is_search_mode())
+                search_entry.grab_focus ();
+        }
+
+        private void disable_search() {
+            search_toggle_button.set_active(false);
+        }
+
+        private bool is_search_mode () {
+            return search_toggle_button.get_active();
+        }
+
         private void toggleDescription(){
             if (description_view.is_visible ()){
                 description_view.hide();
@@ -243,14 +303,23 @@ namespace Agenda {
         }
 
         private void load_list () {
+            //disable_search();
             task_list.disable_undo_recording ();
             openTask = stack.peek();
             openTask = backend.find(openTask.id);
             this.set_title (openTask.title);
             
             backButton.set_sensitive(stack.size() > 1);
-            Task[] tasks = backend.list (openTask);
+            
+            Task[] tasks = {};
+
+            if (openTask.id == SEARCH_TASK.id)
+                tasks = backend.search(search_entry.text);
+            else
+                tasks = backend.list (openTask);
+            
             openTask.subtasksCount = tasks.length;
+
             foreach (Task task in tasks) {
                 task_list.append_task (task);
             }
@@ -392,13 +461,14 @@ namespace Agenda {
 
             agenda_welcome.expand = true;
 
-            var grid = new Gtk.Grid ();
+            grid = new Gtk.Grid ();
             grid.expand = true;
             grid.row_homogeneous = false;
-            grid.attach (description_view, 0, 0, 1, 1);
-            grid.attach (agenda_welcome, 0, 1, 1, 1);
-            grid.attach (scrolled_window, 0, 2, 1, 1);
-            grid.attach (task_entry, 0, 3, 1, 1);
+            grid.attach (search_revealer, 0, 0, 1, 1);
+            grid.attach (description_view, 0, 1, 1, 1);
+            grid.attach (agenda_welcome, 0, 2, 1, 1);
+            grid.attach (scrolled_window, 0, 3, 1, 1);
+            grid.attach (task_entry, 0, 4, 1, 1);
 
             this.add (grid);
 
@@ -406,6 +476,7 @@ namespace Agenda {
             task_entry.margin_end = 10;
             task_entry.margin_top = 10;
             task_entry.margin_bottom = 10;
+            search_revealer.show();
 
             task_entry.grab_focus ();
         }
@@ -439,9 +510,31 @@ namespace Agenda {
         }
 
         public void back_to_parent(){
-            stack.pop();
+            Task task = stack.pop();
+            if (task.id == SEARCH_TASK.id)
+                disable_search();
             task_list.clear_tasks();
             load_list();
+        }
+
+        private void search_tasks () {            
+            task_list.clear_tasks();
+            remove_search_on_stack();
+            stack.push(SEARCH_TASK);
+            load_list();
+        }
+
+        private void remove_search_on_stack () {
+            Stack inverse = new Stack();
+            while(!stack.is_empty())
+                inverse.push(stack.pop());
+
+            while(!inverse.is_empty()){
+                Task task = inverse.pop();
+                if (task.id == SEARCH_TASK.id)
+                    break;
+                stack.push(task);
+            }
         }
 
         private void copy_tasks(){
@@ -663,7 +756,7 @@ namespace Agenda {
             else
                 hide_welcome ();
 
-            if (openTask.hasDescription()){
+            if (openTask.hasDescription() && openTask != SEARCH_TASK){
                 description_view.show();
                 description_view.buffer.text = openTask.description;
                 infoButton.set_tooltip_text(_("Hide description"));
@@ -672,6 +765,18 @@ namespace Agenda {
                 description_view.hide();
                 infoButton.set_tooltip_text(_("Show description"));               
             }
+
+            if (openTask.id == SEARCH_TASK.id && showingTaskEntry) {
+                grid.remove_row(4);
+                showingTaskEntry = false;
+                task_view.reorderable = false;
+            }
+            else {
+                grid.attach (task_entry, 0, 4, 1, 1);
+                showingTaskEntry = true;
+                task_view.reorderable = true;
+            }
+                
         }
 
         void show_welcome () {
