@@ -558,6 +558,7 @@ namespace Agenda {
             if (Agenda.clipboard.length > 0) {
                 switch(Agenda.paste_mode) {
                     case Agenda.PasteMode.CLONE:
+                        cloneMap = new HashMap<int, Task>();
                         clone_tasks(openTask, Agenda.clipboard);
                         break;
                     case Agenda.PasteMode.MOVE:                    
@@ -612,11 +613,20 @@ namespace Agenda {
             }
         }
 
+        private HashMap<int, Task> cloneMap;
+
         private void clone_tasks(Task parent, Task[] tasks) {
             foreach(Task task in tasks) {
-                Task clone = create_clone(task, parent);
-                Task[] subtasks = backend.list(task);
-                clone_tasks(clone, subtasks);
+                Task clone;
+                if (cloneMap.has_key(task.id)) {
+                    clone = cloneMap.get(task.id);
+                    backend.create_link(clone, parent);
+                }
+                else {
+                    clone = create_clone(task, parent);
+                    Task[] subtasks = backend.list(task);
+                    clone_tasks(clone, subtasks);
+                }
             }
         }
 
@@ -624,8 +634,9 @@ namespace Agenda {
             Task clone = new Task();
             clone.title = task.title;
             clone.description = task.description;
-            clone.complete = task.complete;
+            clone.complete = false;
             backend.create(clone, parent);
+            cloneMap.set(task.id, clone);
             return clone;
         }
 
