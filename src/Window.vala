@@ -556,22 +556,22 @@ namespace Agenda {
 
         public void paste_tasks () {
             if (Agenda.clipboard.length > 0) {
-                switch(Agenda.paste_mode) {
-                    case Agenda.PasteMode.CLONE:
-                        cloneMap = new HashMap<int, Task>();
-                        clone_tasks(openTask, Agenda.clipboard);
-                        break;
-                    case Agenda.PasteMode.MOVE:                    
-                        move_tasks();
-                        break;
-                    case Agenda.PasteMode.LINK:                    
-                        link_tasks();
-                        break;
+                int position = task_view.get_selected_index() + 1;
+
+                if (Agenda.paste_mode == Agenda.PasteMode.CLONE) {
+                    cloneMap = new HashMap<int, Task>();
+                    Agenda.clipboard = clone_tasks(openTask, Agenda.clipboard);
                 }
+
+                append_clipboard_at_position(position);
+
+                if (Agenda.paste_mode == Agenda.PasteMode.MOVE) 
+                    reorder_copy_source();
                 
-                Agenda.clipboard = {};
                 emit_refresh_window(openTask);
                 refresh_task();
+                task_view.set_selected_tasks(Agenda.clipboard);
+                Agenda.clipboard = {};
             }
             else {
                 var external_clipboard = Gtk.Clipboard.get_for_display (Gdk.Display.get_default (),
@@ -607,15 +607,10 @@ namespace Agenda {
             return ids;
         }
 
-        private void link_tasks() {
-            foreach(Task task in Agenda.clipboard) {
-                backend.create_link(task, openTask);
-            }
-        }
-
         private HashMap<int, Task> cloneMap;
 
-        private void clone_tasks(Task parent, Task[] tasks) {
+        private Task[] clone_tasks(Task parent, Task[] tasks) {
+            Task[] clone_subtasks = {};
             foreach(Task task in tasks) {
                 Task clone;
                 if (cloneMap.has_key(task.id)) {
@@ -624,10 +619,13 @@ namespace Agenda {
                 }
                 else {
                     clone = create_clone(task, parent);
+                    cloneMap.set(task.id, clone);
                     Task[] subtasks = backend.list(task);
                     clone_tasks(clone, subtasks);
                 }
+                clone_subtasks += clone;
             }
+            return clone_subtasks;
         }
 
         private Task create_clone(Task task, Task parent){
@@ -636,17 +634,38 @@ namespace Agenda {
             clone.description = task.description;
             clone.complete = false;
             backend.create(clone, parent);
-            cloneMap.set(task.id, clone);
             return clone;
         }
 
-        public void move_tasks(){
-            if(contains_ascending(openTask, Agenda.clipboard[0]))
-                return;           
-            foreach (Task task in Agenda.clipboard) {
-                backend.changeParent(task, Agenda.copy_source, openTask);
-            }
+        private void append_clipboard_at_position(int position){
+            if (contains_ascending(openTask, Agenda.clipboard[0]))
+                return; 
 
+            int index = 1;
+            foreach (Task task in task_list.get_all_tasks()){
+                if (index >= position){
+                    task.position = index + Agenda.clipboard.length;
+                    backend.reorder(task, openTask);
+                }
+                index++;
+            }     
+                   
+            index = position;
+            foreach (Task task in Agenda.clipboard) {
+                switch(Agenda.paste_mode) {
+                    case Agenda.PasteMode.MOVE:                    
+                        backend.changeParent(task, Agenda.copy_source, openTask);
+                        break;
+                    case Agenda.PasteMode.LINK:                    
+                        backend.create_link(task, openTask);
+                        break;
+                }
+                task.position = index++;
+                backend.reorder(task, openTask);
+            }
+        }
+
+        private void reorder_copy_source() {
             Task[] sourcelist = backend.list (Agenda.copy_source);
             int position = 1;
             foreach (Task task in sourcelist) {

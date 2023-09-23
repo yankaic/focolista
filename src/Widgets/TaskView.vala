@@ -184,6 +184,35 @@ namespace Agenda {
             }
         }
 
+        public int get_selected_index(){
+            Gtk.TreeIter iter;
+            bool valid = task_list.get_iter_first (out iter);
+            var tree_selection = get_selection ();
+            int index = 1;
+            while (valid) {
+                if(tree_selection.iter_is_selected(iter))
+                    return index;
+                valid = task_list.iter_next (ref iter);
+                index++;
+            }
+            return index;
+        }
+
+        public void set_selected_tasks(Task[] tasks) {
+            Gtk.TreeIter iter;
+            var tree_selection = get_selection ();
+
+            foreach(Task selected_task in tasks) {
+                bool valid = task_list.get_iter_first (out iter);
+                while (valid) {
+                    Task task = task_list.get_task(iter);
+                    if (task.id == selected_task.id)
+                        tree_selection.select_iter(iter);
+                    valid = task_list.iter_next (ref iter);
+                }
+            }            
+        }
+
         private void toggle_clicked (Gtk.CellRendererToggle toggle, string path) {
             var tree_path = new Gtk.TreePath.from_string (path);
             task_list.toggle_task (tree_path);
