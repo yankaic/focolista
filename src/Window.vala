@@ -608,8 +608,17 @@ namespace Agenda {
         }
 
         private HashMap<int, Task> cloneMap;
+        private HashMap<int, bool> visitedTasks;
 
         private Task[] clone_tasks(Task parent, Task[] tasks) {
+            if (visitedTasks.has_key(parent.id)) {
+                return;
+            }
+            visitedTasks.set(parent.id, true);
+
+        }
+
+        private Task[] clone_tasks2(Task parent, Task[] tasks) {
             Task[] clone_subtasks = {};
             foreach(Task task in tasks) {
                 Task clone;
