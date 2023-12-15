@@ -42,7 +42,6 @@ c_args = [
 
 subdir('lib')
 subdir('test')
-subdir('app')
 
 agenda_client_sources = files(
     'src/Agenda.vala',
