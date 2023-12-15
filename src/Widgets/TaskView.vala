@@ -60,7 +60,7 @@ namespace Agenda {
 
             // Setup the TEXT column
             text.ypad = 6;
-            text.editable = true;
+            text.editable = false;
             text.max_width_chars = 10;
             text.wrap_width = 50;
             text.wrap_mode = Pango.WrapMode.WORD_CHAR;
@@ -72,6 +72,7 @@ namespace Agenda {
                 "text", TaskList.Columns.TEXT,
                 "strikethrough", TaskList.Columns.STRIKETHROUGH);
             column.expand = true;
+            var colunaTexto = column;
             append_column (column);
 
             subinfo.ypad = 6;
@@ -109,20 +110,31 @@ namespace Agenda {
             text.edited.connect (text_edited);
             toggle.toggled.connect (toggle_clicked);
             row_activated.connect (list_row_activated);
+
             button_press_event.connect ((event) => {
-                if (event.button == 8) { // mouse backforward
+                if (event.button == 8)  // mouse backforward
                     return false;
+
+                Gtk.TreePath path = new Gtk.TreePath ();
+                get_path_at_pos((int) event.x, (int) event.y, out path, null, null, null);
+
+                if (event.type == Gdk.EventType.DOUBLE_BUTTON_PRESS && event.button == 1) {
+                    if (path != null) {
+                        text.editable = true;
+                        set_cursor(path, colunaTexto, true);
+                    }
                 }
-                Gtk.TreePath p = new Gtk.TreePath ();
-                get_path_at_pos ((int) event.x, (int) event.y, out p, null, null, null);
-                if (p == null) {
+                text.editable = false;
+                
+                if (path == null) {
                     get_selection ().unselect_all ();
-                    p.free ();
+                    path.free ();
                     return true;
                 }
-                p.free ();
+                path.free ();
                 return false;
             });
+
             get_selection().set_mode(Gtk.SelectionMode.MULTIPLE);
         }
 
