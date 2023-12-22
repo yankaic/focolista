@@ -187,7 +187,7 @@ namespace Agenda {
             task_entry = new Gtk.Entry ();
             
             description_view = new Gtk.TextView ();
-            description_view.set_wrap_mode (Gtk.WrapMode.WORD);
+            description_view.set_wrap_mode (Gtk.WrapMode.WORD_CHAR);
             description_view.margin_start = 10;
             description_view.margin_end = 10;
             description_view.margin_top = 10;
