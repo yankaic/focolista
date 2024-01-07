@@ -64,7 +64,7 @@ namespace Agenda {
         private int xpos;
         private int ypos;
         private Gdk.Rectangle rect;
-        private Gtk.Grid grid;
+        private Gtk.Box layout;
         private bool showingTaskEntry = true;
 
         public signal void on_quit(AgendaWindow window);
@@ -285,6 +285,7 @@ namespace Agenda {
             else {
                 if(!openTask.hasDescription())
                     description_view.buffer.text = _("Description: ");
+                
                 description_view.show();
                 infoButton.set_tooltip_text(_("Hide description"));
             }
@@ -334,6 +335,7 @@ namespace Agenda {
             task_list.enable_undo_recording ();
             task_list.clear_undo ();
             update();
+            task_entry.grab_focus ();
         }
 
         private void setup_ui () {
@@ -457,20 +459,22 @@ namespace Agenda {
             scrolled_window.expand = true;
             scrolled_window.set_policy (
                 Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
-            scrolled_window.add (task_view);
 
             agenda_welcome.expand = true;
 
-            grid = new Gtk.Grid ();
-            grid.expand = true;
-            grid.row_homogeneous = false;
-            grid.attach (search_revealer, 0, 0, 1, 1);
-            grid.attach (description_view, 0, 1, 1, 1);
-            grid.attach (agenda_welcome, 0, 2, 1, 1);
-            grid.attach (scrolled_window, 0, 3, 1, 1);
-            grid.attach (task_entry, 0, 4, 1, 1);
+            Gtk.Box scrolled_panel = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+            scrolled_panel.pack_start(description_view, false, true, 0);
+            scrolled_panel.pack_start(task_view, true, true, 0);
+            scrolled_panel.pack_start (agenda_welcome, true, true, 0);
 
-            this.add (grid);
+            scrolled_window.add (scrolled_panel);
+
+            layout = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
+            layout.pack_start (search_revealer, false, true, 0);
+            layout.pack_start (scrolled_window, true, true, 0);
+            layout.pack_start (task_entry, false, true, 0);
+
+            this.add (layout);
 
             task_entry.margin_start = 10;
             task_entry.margin_end = 10;
@@ -479,6 +483,29 @@ namespace Agenda {
             search_revealer.show();
 
             task_entry.grab_focus ();
+            task_view.taskview_activated.connect(save_vertical_scroll);
+            
+            task_view.focus_in_event.connect((w,e) => {
+                restore_vertical_scroll();
+                return false;
+            });
+
+            task_view.text_editing_started.connect(() => {
+                Timeout.add (1, () => {
+                    restore_vertical_scroll();
+                    return false;
+                });                  
+            });
+        }
+
+        private double vertical_scroll = 0;
+
+        private void save_vertical_scroll() {
+            vertical_scroll = scrolled_window.vadjustment.value;
+        }
+
+        private void restore_vertical_scroll() {
+            scrolled_window.vadjustment.value = vertical_scroll;
         }
 
         public void update_task(Task task) {
@@ -797,12 +824,12 @@ namespace Agenda {
             }
 
             if (openTask.id == SEARCH_TASK.id && showingTaskEntry) {
-                grid.remove_row(4);
+                task_entry.hide();
                 showingTaskEntry = false;
                 task_view.reorderable = false;
             }
             else {
-                grid.attach (task_entry, 0, 4, 1, 1);
+                task_entry.show();
                 showingTaskEntry = true;
                 task_view.reorderable = true;
             }
@@ -810,13 +837,12 @@ namespace Agenda {
         }
 
         void show_welcome () {
-            scrolled_window.hide ();
             agenda_welcome.show ();
+            
         }
 
         void hide_welcome () {
             agenda_welcome.hide ();
-            scrolled_window.show ();
         }
 
         public override bool configure_event (Gdk.EventConfigure event) {

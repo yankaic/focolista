@@ -29,6 +29,7 @@ namespace Agenda {
 
         public signal void text_editing_started();
         public signal void text_editing_ended();
+        public signal void taskview_activated();
 
         public TaskView.with_list (TaskList list) {
             task_list = list;
@@ -114,7 +115,7 @@ namespace Agenda {
             button_press_event.connect ((event) => {
                 if (event.button == 8)  // mouse backforward
                     return false;
-
+                taskview_activated();
                 Gtk.TreePath path = new Gtk.TreePath ();
                 get_path_at_pos((int) event.x, (int) event.y, out path, null, null, null);
 
