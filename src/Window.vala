@@ -455,6 +455,7 @@ namespace Agenda {
 
             this.key_press_event.connect (key_down_event);
             this.button_press_event.connect (button_down_event);
+            description_view.button_press_event.connect (button_down_event);
             task_view.expand = true;
             scrolled_window.expand = true;
             scrolled_window.set_policy (
@@ -473,7 +474,6 @@ namespace Agenda {
             layout.pack_start (search_revealer, false, true, 0);
             layout.pack_start (scrolled_window, true, true, 0);
             layout.pack_start (task_entry, false, true, 0);
-
             this.add (layout);
 
             task_entry.margin_start = 10;
