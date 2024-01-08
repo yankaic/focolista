@@ -127,11 +127,9 @@ namespace Agenda {
                 }
                 text.editable = false;
                 
-                if (path == null) {
+                if (path == null)
                     get_selection ().unselect_all ();
-                    path.free ();
-                    return true;
-                }
+                
                 path.free ();
                 return false;
             });
