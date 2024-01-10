@@ -335,7 +335,6 @@ namespace Agenda {
             task_list.enable_undo_recording ();
             task_list.clear_undo ();
             update();
-            task_entry.grab_focus ();
         }
 
         private void setup_ui () {
