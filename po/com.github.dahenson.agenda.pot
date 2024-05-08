@@ -40,3 +40,9 @@ msgstr ""
 #: src/Window.vala:194
 msgid "Clear history"
 msgstr ""
+
+msgid "Add description"
+msgstr ""
+
+msgid "Generate graph in PDF"
+msgstr ""

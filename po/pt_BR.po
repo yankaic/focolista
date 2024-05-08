@@ -66,11 +66,14 @@ msgstr "Limpar histórico"
 msgid "Hide description"
 msgstr "Ocultar descrição"
 
-msgid "Show description"
-msgstr "Mostrar descrição"
-
 msgid "Description: "
 msgstr "Descrição: "
 
 msgid "Back"
 msgstr "Voltar"
+
+msgid "Add description"
+msgstr "Adicionar descrição"
+
+msgid "Generate graph in PDF"
+msgstr "Gerar gráfico em PDF"

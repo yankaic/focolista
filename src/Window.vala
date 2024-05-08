@@ -49,7 +49,7 @@ namespace Agenda {
         private Gtk.Button removeCompletedTasksButton;
         private Gtk.Button backButton;
         private Gtk.Button sortButton;
-        private Gtk.Button infoButton;
+        private Gtk.MenuItem description_menuitem ;
 
         private Gtk.HeaderBar header;
 
@@ -160,12 +160,23 @@ namespace Agenda {
             backButton.set_tooltip_text(_("Back"));
             header.pack_start(backButton);
 
-            infoButton = new Gtk.Button.from_icon_name ("help-info-symbolic", Gtk.IconSize.BUTTON);
-            infoButton.clicked.connect(toggleDescription);
-            header.pack_end(infoButton);
-            header.pack_end(search_toggle_button);
+            var preferences_menuitem = new Gtk.MenuItem.with_label (_("Generate graph in PDF"));
+            preferences_menuitem.activate.connect (exportarPDF);
 
-            //header.pack_end(removeCompletedTasksButton);
+            description_menuitem = new Gtk.MenuItem.with_label (_("Add description"));
+            description_menuitem.activate.connect (addDescription);
+
+            var menu = new Gtk.Menu ();
+            menu.append (preferences_menuitem);
+            menu.append (description_menuitem);
+            menu.show_all ();
+
+            var menu_button = new Gtk.MenuButton ();
+            menu_button.image = new Gtk.Image.from_icon_name ("overflow-menu", Gtk.IconSize.BUTTON);
+            menu_button.popup = menu;
+
+            header.pack_end(menu_button);
+            header.pack_end(search_toggle_button);
 
             sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic");
             sortButton.clicked.connect (() => {
@@ -263,6 +274,89 @@ namespace Agenda {
             );
         }
 
+        private void exportarPDF () {
+            // Gere o script Graphviz em uma variável string
+            string graphviz_script = gerar_script_graphviz ();
+        
+            // Salve o script em um arquivo temporário na pasta Downloads
+            string file_path = salvar_script_temporario (graphviz_script);
+        
+            //  Compile o arquivo usando a engine dot para gerar um arquivo PDF
+            compilar_com_dot (file_path);
+        
+            // Abra o arquivo PDF com o visualizador padrão do sistema
+            abrir_pdf_com_visualizador_padrao (file_path + ".pdf");
+        }
+        
+        private string gerar_script_graphviz () {            
+            string graph_code = "digraph G {\n";
+            graph_code = graph_code + "rankdir=\"LR\";\n";
+            graph_code = graph_code + "node[shape=rect, style=rounded];\n" ;
+
+            HashMap visited_tasks = new HashMap<int, bool>();
+            graph_code = generate_graph_code(openTask, graph_code, visited_tasks);
+            graph_code = graph_code + "}\n" ;
+            return graph_code;            
+        }
+
+        private string temp_path = "/tmp/hitaskly/";
+        
+        private string salvar_script_temporario (string script) {                        
+
+            try { 
+                DirUtils.create_with_parents (temp_path, 0775);
+
+                File file = File.new_for_path (temp_path + openTask.title + ".dot");
+                FileOutputStream writer;
+
+                if (file.query_exists (null))
+                    writer = file.replace (null, false, FileCreateFlags.NONE, null);
+                else
+                    writer = file.create (FileCreateFlags.PRIVATE);
+                
+                writer.write(script.data);
+                writer.close(null);
+
+                return file.get_path();
+            } catch (Error e) {
+                stderr.printf ("Erro ao salvar o script: %s\n", e.message);
+            }
+            return "Deu erro.dot";
+        }
+        
+        private void compilar_com_dot (string file_path) {
+            try {
+                // Execute o comando dot para compilar o arquivo
+                Process.spawn_command_line_sync ("dot -Tpdf -o \"" + temp_path + openTask.title + ".pdf\" \"" + file_path + "\"");
+            } catch (Error e) {
+                stderr.printf ("Erro ao compilar com dot: %s\n", e.message);
+            }
+        }
+        
+        private void abrir_pdf_com_visualizador_padrao (string pdf_path) {
+            try {
+                // Execute o comando para abrir o PDF com o visualizador padrão
+                Process.spawn_command_line_sync ("xdg-open \"" + temp_path + openTask.title+ ".pdf\"");
+            } catch (Error e) {
+                stderr.printf ("Erro ao abrir o PDF: %s\n", e.message);
+            }
+        }
+
+        private string generate_graph_code(Task task, owned string graph_code, HashMap<int, bool> visited_tasks) {
+            if (visited_tasks.has_key(task.id))
+                return graph_code;
+
+            visited_tasks.set(task.id, true);
+            graph_code = graph_code + task.id.to_string() + "[label=\"" + task.title.replace("\"", "\\\"") + "\"];\n";
+
+            Task[] subtasks = backend.list(task);
+            foreach(Task subtask in subtasks) {
+                graph_code = graph_code + task.id.to_string() + " -> " + subtask.id.to_string() + ";\n";
+                graph_code = generate_graph_code(subtask, graph_code, visited_tasks);
+            }
+            return graph_code;
+        }
+
         private void toggle_search() {
             search_revealer.set_reveal_child(is_search_mode());
             if (is_search_mode())
@@ -277,18 +371,10 @@ namespace Agenda {
             return search_toggle_button.get_active();
         }
 
-        private void toggleDescription(){
-            if (description_view.is_visible ()){
-                description_view.hide();
-                infoButton.set_tooltip_text(_("Show description"));
-            }
-            else {
-                if(!openTask.hasDescription())
-                    description_view.buffer.text = _("Description: ");
-                
-                description_view.show();
-                infoButton.set_tooltip_text(_("Hide description"));
-            }
+        private void addDescription(){
+            description_view.buffer.text = _("Description: ");
+            description_view.show();
+            description_menuitem.hide();
         }
 
         private HashMap<int, bool> waiting_one_milisecond = new HashMap<int, bool>();
@@ -814,12 +900,12 @@ namespace Agenda {
 
             if (openTask.hasDescription() && openTask != SEARCH_TASK){
                 description_view.show();
+                description_menuitem.hide();
                 description_view.buffer.text = openTask.description;
-                infoButton.set_tooltip_text(_("Hide description"));
             }
             else {
                 description_view.hide();
-                infoButton.set_tooltip_text(_("Show description"));               
+                description_menuitem.show();           
             }
 
             if (openTask.id == SEARCH_TASK.id && showingTaskEntry) {
