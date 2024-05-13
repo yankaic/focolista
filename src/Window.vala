@@ -146,6 +146,7 @@ namespace Agenda {
 
             search_toggle_button = new Gtk.ToggleButton();
             search_toggle_button.set_image(new Gtk.Image.from_icon_name("search", Gtk.IconSize.BUTTON));
+            search_toggle_button.valign = Gtk.Align.CENTER;
             search_toggle_button.clicked.connect(toggle_search);
 
             removeCompletedTasksButton = new Gtk.Button.from_icon_name ("user-trash-symbolic", Gtk.IconSize.BUTTON);
@@ -156,6 +157,7 @@ namespace Agenda {
                 }                
             });
             backButton = new Gtk.Button.from_icon_name ("go-previous", Gtk.IconSize.BUTTON);
+            backButton.valign = Gtk.Align.CENTER;
             backButton.clicked.connect(back_to_parent);
             backButton.set_tooltip_text(_("Back"));
             header.pack_start(backButton);
@@ -173,6 +175,7 @@ namespace Agenda {
 
             var menu_button = new Gtk.MenuButton ();
             menu_button.image = new Gtk.Image.from_icon_name ("overflow-menu", Gtk.IconSize.BUTTON);
+            menu_button.valign = Gtk.Align.CENTER;
             menu_button.popup = menu;
 
             header.pack_end(menu_button);
