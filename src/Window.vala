@@ -690,7 +690,7 @@ namespace Agenda {
 
         public void paste_tasks () {
             if (Agenda.clipboard.length > 0) {
-                int position = task_view.get_selected_index() + 1;
+                int position = task_view.get_selected_index();
 
                 if (Agenda.paste_mode == Agenda.PasteMode.CLONE) {
                     cloneMap = new HashMap<int, Task>();
@@ -939,7 +939,6 @@ namespace Agenda {
                 task_entry.show();
                 showingTaskEntry = true;
                 task_view.reorderable = true;
-                task_entry.grab_focus();
             }
                 
         }
