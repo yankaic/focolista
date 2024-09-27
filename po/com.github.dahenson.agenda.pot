@@ -44,5 +44,8 @@ msgstr ""
 msgid "Add description"
 msgstr ""
 
+msgid "Search"
+msgstr ""
+
 msgid "Generate graph in PDF"
 msgstr ""

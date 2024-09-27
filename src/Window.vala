@@ -49,7 +49,8 @@ namespace Agenda {
         private Gtk.Button removeCompletedTasksButton;
         private Gtk.Button backButton;
         private Gtk.Button sortButton;
-        private Gtk.MenuItem description_menuitem ;
+        private Gtk.MenuItem search_menuitem ;
+        private Gtk.Button descriptionButton;
 
         private Gtk.HeaderBar header;
 
@@ -66,6 +67,7 @@ namespace Agenda {
         private Gdk.Rectangle rect;
         private Gtk.Box layout;
         private bool showingTaskEntry = true;
+        private bool is_search_mode = false;
 
         public signal void on_quit(AgendaWindow window);
         public signal void refresh_window(Task task, AgendaWindow source);
@@ -165,12 +167,14 @@ namespace Agenda {
             var preferences_menuitem = new Gtk.MenuItem.with_label (_("Generate graph in PDF"));
             preferences_menuitem.activate.connect (exportarPDF);
 
-            description_menuitem = new Gtk.MenuItem.with_label (_("Add description"));
-            description_menuitem.activate.connect (addDescription);
+            search_menuitem = new Gtk.MenuItem.with_label (_("Search"));
+            search_menuitem.activate.connect(() => {
+                search_toggle_button.set_active(true);
+            });
 
             var menu = new Gtk.Menu ();
             menu.append (preferences_menuitem);
-            menu.append (description_menuitem);
+            menu.append (search_menuitem);
             menu.show_all ();
 
             var menu_button = new Gtk.MenuButton ();
@@ -180,6 +184,16 @@ namespace Agenda {
 
             header.pack_end(menu_button);
             header.pack_end(search_toggle_button);
+            Timeout.add (1, () => {
+                search_toggle_button.hide();
+                return false;
+            });
+
+            descriptionButton = new Gtk.Button.from_icon_name ("format-justify-left-symbolic", Gtk.IconSize.BUTTON);
+            descriptionButton.valign = Gtk.Align.CENTER;
+            descriptionButton.clicked.connect(addDescription);
+            descriptionButton.set_tooltip_text(_("Add description"));
+            header.pack_end(descriptionButton);
 
             sortButton = new Gtk.Button.from_icon_name ("view-sort-ascending-symbolic");
             sortButton.clicked.connect (() => {
@@ -361,23 +375,28 @@ namespace Agenda {
         }
 
         private void toggle_search() {
-            search_revealer.set_reveal_child(is_search_mode());
-            if (is_search_mode())
+            this.is_search_mode = !this.is_search_mode;
+            search_revealer.set_reveal_child(this.is_search_mode);
+
+            if (this.is_search_mode) {
                 search_entry.grab_focus ();
+                search_toggle_button.show();
+            }
+            else {
+                search_toggle_button.hide();
+            }
         }
 
         private void disable_search() {
             search_toggle_button.set_active(false);
-        }
-
-        private bool is_search_mode () {
-            return search_toggle_button.get_active();
+            search_toggle_button.hide();
         }
 
         private void addDescription(){
             description_view.buffer.text = _("Description: ");
             description_view.show();
-            description_menuitem.hide();
+            descriptionButton.hide();
+            description_view.grab_focus();
         }
 
         private HashMap<int, bool> waiting_one_milisecond = new HashMap<int, bool>();
@@ -903,12 +922,12 @@ namespace Agenda {
 
             if (openTask.hasDescription() && openTask != SEARCH_TASK){
                 description_view.show();
-                description_menuitem.hide();
+                descriptionButton.hide();
                 description_view.buffer.text = openTask.description;
             }
             else {
                 description_view.hide();
-                description_menuitem.show();           
+                descriptionButton.show();           
             }
 
             if (openTask.id == SEARCH_TASK.id && showingTaskEntry) {
@@ -920,6 +939,7 @@ namespace Agenda {
                 task_entry.show();
                 showingTaskEntry = true;
                 task_view.reorderable = true;
+                task_entry.grab_focus();
             }
                 
         }

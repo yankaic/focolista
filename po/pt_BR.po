@@ -43,26 +43,6 @@ msgstr ""
 msgid "Clear history"
 msgstr "Limpar histórico"
 
-#, fuzzy
-#~ msgid "Agenda"
-#~ msgstr "Sobre Agenda"
-
-#, fuzzy
-#~ msgid "Task List"
-#~ msgstr "Tarefa concluída"
-
-#~ msgid "A simple, slick, speedy and no-nonsense task manager."
-#~ msgstr "Um gestor de tarefas simples, liso, rápido e sem falhas."
-
-#~ msgid "What's to be done"
-#~ msgstr "O que há para ser feito"
-
-#~ msgid " tasks have been removed"
-#~ msgstr " tarefas foram removidas"
-
-#~ msgid "A task has been removed"
-#~ msgstr "Uma tarefa foi removida"
-
 msgid "Hide description"
 msgstr "Ocultar descrição"
 
@@ -77,3 +57,6 @@ msgstr "Adicionar descrição"
 
 msgid "Generate graph in PDF"
 msgstr "Gerar gráfico em PDF"
+
+msgid "Search"
+msgstr "Buscar"
