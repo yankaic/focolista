@@ -21,33 +21,33 @@
 
 namespace Agenda {
 
-    public class Stack : GLib.Object {
-        private Task[] tasks;
+    public class Stack<T> {
+        private T[] list;
 
         public Stack () {
-            tasks = {};
+            list = {};
         }
 
-        public Task pop() {
-            Task task  = peek();
-            tasks = tasks[0 : tasks.length - 1];
+        public T? pop() {
+            T task  = peek();
+            list = list[0 : list.length - 1];
             return task;
         }
 
-        public void push(Task task) {
-            tasks += task;
+        public void push(T task) {
+            list += task;
         }
 
-        public Task peek () {
-            return tasks[tasks.length - 1 : tasks.length][0];
+        public T? peek () {
+            return list[list.length - 1 : list.length][0];
         }
 
         public int size () {
-            return tasks.length;
+            return list.length;
         }
 
         public bool is_empty() {
-            return tasks.length == 0;
+            return list.length == 0;
         }
     }
 }

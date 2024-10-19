@@ -251,8 +251,8 @@ namespace Agenda {
             insertConnectionStatement.reset ();
         }
 
-        public Stack readStack () {
-            Stack stack = new Stack();
+        public Stack<Task> readStack () {
+            Stack<Task> stack = new Stack<Task>();
             while (readStackStatement.step () == Sqlite.ROW) {
                 Task task = new Task ();
                 task.id =  readStackStatement.column_int (0);
@@ -262,8 +262,8 @@ namespace Agenda {
             return stack;
         }
         
-        public void writeStack (Stack stack){
-            Stack inverse = new Stack();
+        public void writeStack (Stack<Task> stack){
+            Stack<Task> inverse = new Stack<Task>();
             while(!stack.is_empty())
                 inverse.push(stack.pop());
             

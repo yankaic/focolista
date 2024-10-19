@@ -37,7 +37,8 @@ namespace Agenda {
             "org.gnome.desktop.privacy");
 
         private SqliteBackend backend;
-        private Stack stack;
+        private Stack<Task> stack;
+        private Stack<double?> scroll_values;
 
         private Granite.Widgets.Welcome agenda_welcome;
         private TaskView task_view;
@@ -68,6 +69,7 @@ namespace Agenda {
         private Gtk.Box layout;
         private bool showingTaskEntry = true;
         private bool is_search_mode = false;
+        private bool auto_scroll_on_selection = true;
 
         public signal void on_quit(AgendaWindow window);
         public signal void refresh_window(Task task, AgendaWindow source);
@@ -246,6 +248,7 @@ namespace Agenda {
 
             backend = new SqliteBackend ();
             stack = backend.readStack();
+            scroll_values = new Stack<double?>();
             load_list ();
             setup_ui ();
 
@@ -397,6 +400,7 @@ namespace Agenda {
             description_view.show();
             descriptionButton.hide();
             description_view.grab_focus();
+            scrolled_window.get_vadjustment().set_value(0);
         }
 
         private HashMap<int, bool> waiting_one_milisecond = new HashMap<int, bool>();
@@ -519,6 +523,7 @@ namespace Agenda {
 
             task_list.open_task.connect ((task) => {
                 stack.push(task);
+                scroll_values.push(scrolled_window.get_vadjustment().get_value());
                 load_list();
             });
 
@@ -576,6 +581,23 @@ namespace Agenda {
             scrolled_panel.pack_start (agenda_welcome, true, true, 0);
 
             scrolled_window.add (scrolled_panel);
+
+            task_view.on_select.connect((first_selected_task_position, last_selected_task_position) => {
+                if (!auto_scroll_on_selection)
+                    return;
+                
+                double description_height = 0;                
+                if (description_view.get_visible())
+                    description_height = description_view.get_allocated_height() + description_view.margin_top + description_view.margin_bottom;
+                
+                bool needs_to_go_down = description_height + last_selected_task_position > scrolled_window.get_vadjustment().get_value() + scrolled_window.get_allocated_height();
+                if (needs_to_go_down)
+                    scrolled_window.get_vadjustment().set_value(last_selected_task_position - scrolled_window.get_allocated_height() + description_height);
+
+                bool needs_to_go_up = description_height + first_selected_task_position < scrolled_window.get_vadjustment().get_value();
+                if (needs_to_go_up) 
+                    scrolled_window.get_vadjustment().set_value(first_selected_task_position + description_height);
+            });
 
             layout = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
             layout.pack_start (search_revealer, false, true, 0);
@@ -643,12 +665,28 @@ namespace Agenda {
             app.set_accels_for_action ("win.link", {"<Ctrl>L"});
         }
 
-        public void back_to_parent(){
+        public void back_to_parent() {
             Task task = stack.pop();
             if (task.id == SEARCH_TASK.id)
                 disable_search();
             task_list.clear_tasks();
             load_list();
+
+            Task[] list = {}; 
+            list += task;
+            task_view.set_selected_tasks(list);
+
+            if (!scroll_values.is_empty()) {
+                auto_scroll_on_selection = false;
+                Timeout.add (1, () => {
+                    scrolled_window.get_vadjustment().set_value(scroll_values.pop());
+                    return false;
+                });                
+            }    
+            Timeout.add (101, () => {                
+                auto_scroll_on_selection = true; 
+                return false;
+            });                   
         }
 
         private void search_tasks () {            
@@ -659,7 +697,7 @@ namespace Agenda {
         }
 
         private void remove_search_on_stack () {
-            Stack inverse = new Stack();
+            Stack<Task> inverse = new Stack<Task>();
             while(!stack.is_empty())
                 inverse.push(stack.pop());
 
@@ -815,13 +853,20 @@ namespace Agenda {
 
         private void create_tasks_from_string(string tasks){
             string[] lines = tasks.split("\n");
+            Task[] new_tasks = {};
             foreach(string line in lines){
                 Task task = new Task.with_attributes (
                     -1,
                     false,
                     line);
                 create_task(task);
+                new_tasks += task;
             }
+
+            Timeout.add (150, () => {
+                task_view.set_selected_tasks(new_tasks);
+                return false;
+            }); 
         }
 
         public void create_task(Task task){

@@ -30,8 +30,8 @@ namespace Agenda {
         public abstract void changeParent(Task task, Task old_parent, Task new_parent);
         public abstract void reorder (Task task, Task parent);
         public abstract void create_link (Task task, Task new_parent);
-        public abstract Stack readStack ();
-        public abstract void writeStack (Stack stack);
+        public abstract Stack<Task> readStack ();
+        public abstract void writeStack (Stack<Task> stack);
         public abstract void modify_description(Task task);
         public abstract Task[] search(string text);
     }

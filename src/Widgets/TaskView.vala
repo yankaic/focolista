@@ -212,17 +212,39 @@ namespace Agenda {
         public void set_selected_tasks(Task[] tasks) {
             Gtk.TreeIter iter;
             var tree_selection = get_selection ();
+            tree_selection.unselect_all();
+            Gtk.TreePath[] selected_paths = {};
 
             foreach(Task selected_task in tasks) {
                 bool valid = task_list.get_iter_first (out iter);
                 while (valid) {
                     Task task = task_list.get_task(iter);
-                    if (task.id == selected_task.id)
-                        tree_selection.select_iter(iter);
+                    if (task.id == selected_task.id) {
+                        tree_selection.select_iter(iter);  
+                        selected_paths += task_list.get_path (iter);                         
+                    }
                     valid = task_list.iter_next (ref iter);
                 }
+            } 
+            
+            if (tasks.length > 0){
+                Timeout.add (1, () => {
+                    Gdk.Rectangle rect;                      
+                    double first_selected_task_position, last_selected_task_position;        
+                          
+                    get_cell_area(selected_paths[0], null, out rect);
+                    first_selected_task_position = rect.y;
+    
+                    get_cell_area(selected_paths[selected_paths.length -1], null, out rect);
+                    last_selected_task_position = rect.y;
+    
+                    on_select(first_selected_task_position, last_selected_task_position + rect.height);
+                    return false;
+                });
             }            
         }
+
+        public signal void on_select(double first_selected_task_position, double last_selected_task_position);
 
         private void toggle_clicked (Gtk.CellRendererToggle toggle, string path) {
             var tree_path = new Gtk.TreePath.from_string (path);
