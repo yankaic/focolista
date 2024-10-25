@@ -58,19 +58,46 @@ namespace Agenda {
 
             File databaseFile = dir.get_child ("tasks.db");
 
-            // Open a database:
+            string errorMessage, query;
+            
             int ec = Sqlite.Database.open (databaseFile.get_path (), out database);
             if (ec != Sqlite.OK) {
                 stderr.printf ("Can't open database: %d: %s\n", database.errcode (), database.errmsg ());
                 return ;
             }
 
-            string errorMessage;
-            string query = "CREATE TABLE IF NOT EXISTS tasks (id int PRIMARY KEY, description text, completed_at text, created_at text, updated_at text, deleted_at text, parent_id int, position int);";
+            query = "select id from tasks where id = 1;";
             ec = database.exec (query, null, out errorMessage);
             if (ec != Sqlite.OK) {
-                stderr.printf ("Error: %s\n", errorMessage);
-                return;
+                query = """
+                    CREATE TABLE tasks (id int PRIMARY KEY, title text, completed_at text, created_at text, updated_at text, description text);
+
+                    CREATE TABLE "stack" (
+                    id int primary key not null,
+                        task_id int not null,
+                        foreign key(task_id) references tasks(id)
+                    );
+                    
+                    CREATE TABLE edge (
+                    parent_id int not null,
+                    child_id int not null,
+                    position int not null,
+                    updated_at text,
+                    deleted_at text,
+                    foreign key(parent_id) references tasks(id),
+                    foreign key(child_id) references tasks(id)
+                    );
+                    
+                    insert into tasks (id,title,completed_at,created_at,updated_at,description) values
+                    (1,'Tarefas',NULL,NULL,NULL,NULL),
+                    (-1,'Pesquisa',NULL,NULL,NULL,'');
+                    
+                    insert into stack (id,task_id) values
+                    (1,1);
+                """;
+    
+                database.exec (query, null, out errorMessage);
+                print("Database created\n");
 	        }
 
             query = "INSERT INTO tasks (id, title, description, completed_at, created_at, updated_at) VALUES ($id, $title, $description, $completed_at, $created_at, $updated_at)";

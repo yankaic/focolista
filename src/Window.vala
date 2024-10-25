@@ -142,7 +142,6 @@ namespace Agenda {
             search_revealer = new Gtk.Revealer();
             search_revealer.visible = true;
             search_revealer.expand = false;
-            search_revealer.set_transition_type (Gtk.Revealer.SLIDE_DOWN);
             search_revealer.set_reveal_child(false);
 
             search_revealer.add(searchbox);
