@@ -271,7 +271,7 @@ namespace Agenda {
 
             var css_provider = new Gtk.CssProvider();
             string style = """
-            textview {
+            textview, textview text {
                 background-color: @bg_color;
                 font-size: 1.05em;
             }
