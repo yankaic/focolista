@@ -70,6 +70,7 @@ namespace Agenda {
         private bool showingTaskEntry = true;
         private bool is_search_mode = false;
         private bool auto_scroll_on_selection = true;
+        private bool first_focus = true;
 
         public signal void on_quit(AgendaWindow window);
         public signal void refresh_window(Task task, AgendaWindow source);
@@ -614,7 +615,10 @@ namespace Agenda {
             task_view.taskview_activated.connect(save_vertical_scroll);
             
             task_view.focus_in_event.connect((w,e) => {
-                restore_vertical_scroll();
+                if (first_focus) {
+                    restore_vertical_scroll();
+                    first_focus = false;
+                }
                 return false;
             });
 
@@ -623,6 +627,10 @@ namespace Agenda {
                     restore_vertical_scroll();
                     return false;
                 });                  
+            });
+
+            task_view.text_editing_ended.connect(() => {
+                restore_vertical_scroll();                               
             });
         }
 
