@@ -29,6 +29,7 @@ namespace Agenda {
         public int position { get; set; default = 0; }
         public string subinfo { get; set; default = ""; }
         public int subtasksCount { get; set; default = 0; }
+        public double scroll { get; set; default = 0.0; }
 
         public Task () {
         }

@@ -38,7 +38,6 @@ namespace Agenda {
 
         private SqliteBackend backend;
         private Stack<Task> stack;
-        private Stack<double?> scroll_values;
 
         private Granite.Widgets.Welcome agenda_welcome;
         private TaskView task_view;
@@ -248,7 +247,6 @@ namespace Agenda {
 
             backend = new SqliteBackend ();
             stack = backend.readStack();
-            scroll_values = new Stack<double?>();
             load_list ();
             setup_ui ();
 
@@ -522,8 +520,8 @@ namespace Agenda {
             task_view.text_editing_ended.connect(add_accelerators_copy);
 
             task_list.open_task.connect ((task) => {
+                task.scroll = scrolled_window.get_vadjustment().get_value();
                 stack.push(task);
-                scroll_values.push(scrolled_window.get_vadjustment().get_value());
                 load_list();
             });
 
@@ -673,27 +671,28 @@ namespace Agenda {
         }
 
         public void back_to_parent() {
-            Task task = stack.pop();
-            if (task.id == SEARCH_TASK.id)
+            Task from_task = stack.pop();
+            if (from_task.id == SEARCH_TASK.id)
                 disable_search();
             task_list.clear_tasks();
             load_list();
 
             Task[] list = {}; 
-            list += task;
+            list += from_task;
             task_view.set_selected_tasks(list);
 
-            if (!scroll_values.is_empty()) {
+            auto_scroll_on_selection = true;
+            if (from_task.scroll != 0.0) {
                 auto_scroll_on_selection = false;
                 Timeout.add (1, () => {
-                    scrolled_window.get_vadjustment().set_value(scroll_values.pop());
+                    scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                    return false;
+                });
+                Timeout.add (101, () => {                
+                    auto_scroll_on_selection = true; 
                     return false;
                 });                
-            }    
-            Timeout.add (101, () => {                
-                auto_scroll_on_selection = true; 
-                return false;
-            });                   
+            }                               
         }
 
         private void search_tasks () {            
