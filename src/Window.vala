@@ -520,6 +520,7 @@ namespace Agenda {
 
             task_list.open_task.connect ((task) => {
                 task.scroll = scrolled_window.get_vadjustment().get_value();
+                scrolled_window.get_vadjustment().set_value(0);
                 stack.push(task);
                 load_list();
             });
@@ -588,11 +589,11 @@ namespace Agenda {
                     description_height = description_view.get_allocated_height() + description_view.margin_top + description_view.margin_bottom;
                 
                 bool needs_to_go_down = description_height + last_selected_task_position > scrolled_window.get_vadjustment().get_value() + scrolled_window.get_allocated_height();
-                if (needs_to_go_down)
+                  if (needs_to_go_down)
                     scrolled_window.get_vadjustment().set_value(last_selected_task_position - scrolled_window.get_allocated_height() + description_height);
 
                 bool needs_to_go_up = description_height + first_selected_task_position < scrolled_window.get_vadjustment().get_value();
-                if (needs_to_go_up) 
+                  if (needs_to_go_up) 
                     scrolled_window.get_vadjustment().set_value(first_selected_task_position + description_height);
             });
 
@@ -612,7 +613,10 @@ namespace Agenda {
             task_view.taskview_activated.connect(save_vertical_scroll);
             
             task_view.focus_in_event.connect((w,e) => {
-                restore_vertical_scroll();
+                Timeout.add (50, () => {
+                    restore_vertical_scroll();
+                    return false;
+                }); 
                 return false;
             });
 
@@ -628,14 +632,12 @@ namespace Agenda {
             });
         }
 
-        private double vertical_scroll = 0;
-
         private void save_vertical_scroll() {
-            vertical_scroll = scrolled_window.vadjustment.value;
+            openTask.scroll = scrolled_window.vadjustment.value;
         }
 
-        private void restore_vertical_scroll() {
-            scrolled_window.vadjustment.value = vertical_scroll;
+        private void restore_vertical_scroll() { 
+            scrolled_window.vadjustment.set_value(openTask.scroll);
         }
 
         public void update_task(Task task) {
