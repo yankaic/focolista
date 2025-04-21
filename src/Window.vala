@@ -525,13 +525,6 @@ namespace Agenda {
                 load_list();
             });
 
-            task_list.list_changed.connect (() => {
-                bool hasCompletedTasks = task_list.hasCompletedTasks();
-                removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
-                //sortButton.set_sensitive(hasCompletedTasks);
-                update ();
-            });
-
             task_list.task_edited.connect ((task) => {
                 backend.update(task);
                 update ();
@@ -540,7 +533,6 @@ namespace Agenda {
 
             task_list.task_toggled.connect ((task) => {
                 backend.mark(task);
-                update ();
                 broadcast_task_update(task);
             });
 
