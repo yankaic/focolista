@@ -669,20 +669,25 @@ namespace Agenda {
 
             Task[] list = {}; 
             list += from_task;
+            auto_scroll_on_selection = false;
             task_view.set_selected_tasks(list);
-
-            auto_scroll_on_selection = true;
-            if (from_task.scroll != 0.0) {
-                auto_scroll_on_selection = false;
-                Timeout.add (1, () => {
-                    scrolled_window.get_vadjustment().set_value(from_task.scroll);
-                    return false;
-                });
-                Timeout.add (101, () => {                
-                    auto_scroll_on_selection = true; 
-                    return false;
-                });                
-            }                               
+            
+            Timeout.add (1, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                return false;
+            });
+            Timeout.add (50, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                return false;
+            });
+            Timeout.add (100, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                return false;
+            });
+            Timeout.add (101, () => {                
+                auto_scroll_on_selection = true; 
+                return false;
+            });                               
         }
 
         private void search_tasks () {            
