@@ -396,7 +396,7 @@ namespace Agenda {
         }
 
         private void addDescription(){
-            description_view.buffer.text = _("Description: ");
+            description_view.buffer.text = "";
             description_view.show();
             descriptionButton.hide();
             description_view.grab_focus();
