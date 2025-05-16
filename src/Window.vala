@@ -38,7 +38,6 @@ namespace Agenda {
 
         private SqliteBackend backend;
         private Stack<Task> stack;
-        private Stack<double?> scroll_values;
 
         private Granite.Widgets.Welcome agenda_welcome;
         private TaskView task_view;
@@ -70,7 +69,6 @@ namespace Agenda {
         private bool showingTaskEntry = true;
         private bool is_search_mode = false;
         private bool auto_scroll_on_selection = true;
-        private bool first_focus = true;
 
         public signal void on_quit(AgendaWindow window);
         public signal void refresh_window(Task task, AgendaWindow source);
@@ -248,7 +246,6 @@ namespace Agenda {
 
             backend = new SqliteBackend ();
             stack = backend.readStack();
-            scroll_values = new Stack<double?>();
             load_list ();
             setup_ui ();
 
@@ -522,16 +519,10 @@ namespace Agenda {
             task_view.text_editing_ended.connect(add_accelerators_copy);
 
             task_list.open_task.connect ((task) => {
+                task.scroll = scrolled_window.get_vadjustment().get_value();
+                scrolled_window.get_vadjustment().set_value(0);
                 stack.push(task);
-                scroll_values.push(scrolled_window.get_vadjustment().get_value());
                 load_list();
-            });
-
-            task_list.list_changed.connect (() => {
-                bool hasCompletedTasks = task_list.hasCompletedTasks();
-                removeCompletedTasksButton.set_sensitive(hasCompletedTasks);
-                //sortButton.set_sensitive(hasCompletedTasks);
-                update ();
             });
 
             task_list.task_edited.connect ((task) => {
@@ -542,7 +533,6 @@ namespace Agenda {
 
             task_list.task_toggled.connect ((task) => {
                 backend.mark(task);
-                update ();
                 broadcast_task_update(task);
             });
 
@@ -591,11 +581,11 @@ namespace Agenda {
                     description_height = description_view.get_allocated_height() + description_view.margin_top + description_view.margin_bottom;
                 
                 bool needs_to_go_down = description_height + last_selected_task_position > scrolled_window.get_vadjustment().get_value() + scrolled_window.get_allocated_height();
-                if (needs_to_go_down)
+                  if (needs_to_go_down)
                     scrolled_window.get_vadjustment().set_value(last_selected_task_position - scrolled_window.get_allocated_height() + description_height);
 
                 bool needs_to_go_up = description_height + first_selected_task_position < scrolled_window.get_vadjustment().get_value();
-                if (needs_to_go_up) 
+                  if (needs_to_go_up) 
                     scrolled_window.get_vadjustment().set_value(first_selected_task_position + description_height);
             });
 
@@ -615,10 +605,10 @@ namespace Agenda {
             task_view.taskview_activated.connect(save_vertical_scroll);
             
             task_view.focus_in_event.connect((w,e) => {
-                if (first_focus) {
+                Timeout.add (50, () => {
                     restore_vertical_scroll();
-                    first_focus = false;
-                }
+                    return false;
+                }); 
                 return false;
             });
 
@@ -634,14 +624,12 @@ namespace Agenda {
             });
         }
 
-        private double vertical_scroll = 0;
-
         private void save_vertical_scroll() {
-            vertical_scroll = scrolled_window.vadjustment.value;
+            openTask.scroll = scrolled_window.vadjustment.value;
         }
 
-        private void restore_vertical_scroll() {
-            scrolled_window.vadjustment.value = vertical_scroll;
+        private void restore_vertical_scroll() { 
+            scrolled_window.vadjustment.set_value(openTask.scroll);
         }
 
         public void update_task(Task task) {
@@ -673,27 +661,33 @@ namespace Agenda {
         }
 
         public void back_to_parent() {
-            Task task = stack.pop();
-            if (task.id == SEARCH_TASK.id)
+            Task from_task = stack.pop();
+            if (from_task.id == SEARCH_TASK.id)
                 disable_search();
             task_list.clear_tasks();
             load_list();
 
             Task[] list = {}; 
-            list += task;
+            list += from_task;
+            auto_scroll_on_selection = false;
             task_view.set_selected_tasks(list);
-
-            if (!scroll_values.is_empty()) {
-                auto_scroll_on_selection = false;
-                Timeout.add (1, () => {
-                    scrolled_window.get_vadjustment().set_value(scroll_values.pop());
-                    return false;
-                });                
-            }    
+            
+            Timeout.add (1, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                return false;
+            });
+            Timeout.add (50, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                return false;
+            });
+            Timeout.add (100, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                return false;
+            });
             Timeout.add (101, () => {                
                 auto_scroll_on_selection = true; 
                 return false;
-            });                   
+            });                               
         }
 
         private void search_tasks () {            
