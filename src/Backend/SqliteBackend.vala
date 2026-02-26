@@ -169,7 +169,7 @@ namespace Agenda {
                 task.position =  statement.column_int (4);
                 completed = statement.column_int (5);
                 count = statement.column_int (6);
-                task.subinfo = count > 0 ? "(" + completed.to_string() + "/" + count.to_string() + ")": "";
+                task.subinfo = count > 0 ? "" + completed.to_string() + "/" + count.to_string() + "": "";
                 task.subtasksCount = count;
                 tasks += task;
             }

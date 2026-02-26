@@ -70,8 +70,7 @@ namespace Agenda {
             text.scale = 1.03;
 
             column = new Gtk.TreeViewColumn.with_attributes ("Task", text,
-                "text", TaskList.Columns.TEXT,
-                "strikethrough", TaskList.Columns.STRIKETHROUGH);
+                "text", TaskList.Columns.TEXT);
             column.expand = true;
             var colunaTexto = column;
             append_column (column);
@@ -79,11 +78,9 @@ namespace Agenda {
             subinfo.ypad = 6;
             subinfo.editable = false;
             
-            /*  
-            var foreground_color = subinfo.foreground_rgba.copy();
-            foreground_color.alpha = 0.5;
-            subinfo.foreground_rgba = foreground_color;
-            */
+            subinfo.foreground = "gray";
+            subinfo.xalign = 1.0f;   
+            subinfo.xpad = 0;       
 
             column = new Gtk.TreeViewColumn.with_attributes ("SUBINFO", subinfo,
                 "text", TaskList.Columns.SUBINFO);     

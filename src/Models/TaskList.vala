@@ -33,7 +33,6 @@ namespace Agenda {
         public enum Columns {
             TOGGLE,
             TEXT,
-            STRIKETHROUGH,
             SUBINFO,
             ENTER,
             ID,
@@ -60,7 +59,6 @@ namespace Agenda {
             Type[] types = {
                 typeof (bool),
                 typeof (string),
-                typeof (bool),
                 typeof (string),
                 typeof (string),
                 typeof (int),
@@ -87,7 +85,6 @@ namespace Agenda {
             set (iter,
                  Columns.TOGGLE, task.complete,
                  Columns.TEXT, task.title,
-                 Columns.STRIKETHROUGH, task.complete,
                  Columns.SUBINFO, task.subinfo,
                  Columns.ENTER, "go-next-symbolic",
                  Columns.ID, task.id,
@@ -234,8 +231,7 @@ namespace Agenda {
                     if (task.complete != subtask.complete){
                         subtask.complete = task.complete;
                         set (iter,
-                            TaskList.Columns.TOGGLE, task.complete,
-                            TaskList.Columns.STRIKETHROUGH, task.complete);
+                            TaskList.Columns.TOGGLE, task.complete);
                     }
                 }
                 valid = iter_next (ref iter);
@@ -284,7 +280,6 @@ namespace Agenda {
                      Columns.TOGGLE, task.complete,
                      Columns.TEXT, task.title,
                      Columns.SUBINFO, task.subinfo,
-                     Columns.STRIKETHROUGH, task.complete,
                      Columns.ID, task.id,
                      Columns.TASK, task
                 );
@@ -430,8 +425,7 @@ namespace Agenda {
             get (iter, Columns.TOGGLE, out toggle);
             get (iter, Columns.TASK, out task);
             set (iter,
-                TaskList.Columns.TOGGLE, !toggle,
-                TaskList.Columns.STRIKETHROUGH, !toggle);
+                TaskList.Columns.TOGGLE, !toggle);
             task.complete = !toggle;
 
             task_toggled (task);

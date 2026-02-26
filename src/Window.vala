@@ -269,8 +269,13 @@ namespace Agenda {
 
             var css_provider = new Gtk.CssProvider();
             string style = """
+
+            window {
+                background-color: white;
+            }
             textview, textview text {
-                background-color: @bg_color;
+                background-color: white;
+                color: grey;
                 font-size: 1.05em;
             }
             .task-entry{
