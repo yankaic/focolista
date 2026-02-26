@@ -246,6 +246,10 @@ namespace Agenda {
         private void toggle_clicked (Gtk.CellRendererToggle toggle, string path) {
             var tree_path = new Gtk.TreePath.from_string (path);
             task_list.toggle_task (tree_path);
+            Timeout.add (1, () => {                
+                get_selection ().unselect_all ();
+                return false;
+            });
         }
 
         private void text_edited (string path, string edited_text) {
