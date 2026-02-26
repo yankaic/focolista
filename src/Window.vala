@@ -275,7 +275,7 @@ namespace Agenda {
             }
             textview, textview text {
                 background-color: white;
-                color: grey;
+                color: #595959;
                 font-size: 1.05em;
             }
             .task-entry{
