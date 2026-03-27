@@ -212,14 +212,15 @@ namespace Agenda {
             task_list = new TaskList ();
             task_view = new TaskView.with_list (task_list);
             scrolled_window = new Gtk.ScrolledWindow (null, null);
+            task_view.margin_top = 6;
             task_entry = new Gtk.Entry ();
             
             description_view = new Gtk.TextView ();
             description_view.set_wrap_mode (Gtk.WrapMode.WORD_CHAR);
-            description_view.margin_start = 10;
-            description_view.margin_end = 10;
-            description_view.margin_top = 10;
-            description_view.margin_bottom = 10;
+            description_view.margin_start = 14;
+            description_view.margin_end = 12;
+            description_view.margin_top = 12;
+            description_view.margin_bottom = 0;
             description_view.buffer.changed.connect((event)=> {
                 if(description_view.has_focus) {
                     openTask.description = description_view.buffer.text;
@@ -269,7 +270,9 @@ namespace Agenda {
 
             var css_provider = new Gtk.CssProvider();
             string style = """
-
+            treeview.view check {
+                padding-left: 6px;
+            }
             window {
                 background-color: white;
             }

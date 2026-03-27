@@ -52,7 +52,7 @@ namespace Agenda {
             var enterbutton = new Gtk.CellRendererPixbuf ();
 
             // Setup the TOGGLE column
-            toggle.xpad = 6;
+            toggle.xpad = 6; // Define o respiro
             column = new Gtk.TreeViewColumn.with_attributes ("Toggle",
                                                              toggle,
                                                              "active",
@@ -60,18 +60,19 @@ namespace Agenda {
             append_column (column);
 
             // Setup the TEXT column
-            text.ypad = 6;
+            text.ypad = 7;
+            text.xpad = 0;
             text.editable = false;
             text.max_width_chars = 10;
             text.wrap_width = 50;
             text.wrap_mode = Pango.WrapMode.WORD_CHAR;
             text.ellipsize_set = true;
             text.ellipsize = Pango.EllipsizeMode.END;
-            text.scale = 1.03;
+            text.scale = 1.05;
 
             column = new Gtk.TreeViewColumn.with_attributes ("Task", text,
                 "text", TaskList.Columns.TEXT);
-            column.expand = true;
+            column.expand = true;            
             var colunaTexto = column;
             append_column (column);
 
@@ -174,7 +175,7 @@ namespace Agenda {
         }
 
         private void list_row_activated (Gtk.TreePath path, Gtk.TreeViewColumn column) {
-            if (column.title == "Enter") {
+            if (column.title == "Enter" || column.title == "SUBINFO" ) {
                 task_list.enter_task (path);
             }
         }
