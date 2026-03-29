@@ -69,6 +69,7 @@ namespace Agenda {
         private bool showingTaskEntry = true;
         private bool is_search_mode = false;
         private bool auto_scroll_on_selection = true;
+        private Entrada entrada;
 
         public signal void on_quit(AgendaWindow window);
         public signal void refresh_window(Task task, AgendaWindow source);
@@ -213,6 +214,7 @@ namespace Agenda {
             task_view = new TaskView.with_list (task_list);
             scrolled_window = new Gtk.ScrolledWindow (null, null);
             task_view.margin_top = 6;
+            //  task_view.expand = true;
             task_entry = new Gtk.Entry ();
             
             description_view = new Gtk.TextView ();
@@ -284,6 +286,13 @@ namespace Agenda {
             .task-entry{
                 font-size: 1.05em;
             }
+            .debug-red {
+                background-color: red;
+            }
+            .accent-text {
+                color: #49498C;
+                font-size: 1.05em;
+            } 
             """;
 
             try {
@@ -566,17 +575,18 @@ namespace Agenda {
             this.key_press_event.connect (key_down_event);
             this.button_press_event.connect (button_down_event);
             description_view.button_press_event.connect (button_down_event);
-            task_view.expand = true;
             scrolled_window.expand = true;
             scrolled_window.set_policy (
                 Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
 
             agenda_welcome.expand = true;
+            entrada = new Entrada();
 
             Gtk.Box scrolled_panel = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
             scrolled_panel.pack_start(description_view, false, true, 0);
-            scrolled_panel.pack_start(task_view, true, true, 0);
-            scrolled_panel.pack_start (agenda_welcome, true, true, 0);
+            scrolled_panel.pack_start(task_view, false, true, 0);
+            scrolled_panel.pack_start (entrada, true, true, 0);
+            //  scrolled_panel.pack_start (agenda_welcome, true, true, 0);
 
             scrolled_window.add (scrolled_panel);
 
@@ -600,7 +610,7 @@ namespace Agenda {
             layout = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
             layout.pack_start (search_revealer, false, true, 0);
             layout.pack_start (scrolled_window, true, true, 0);
-            layout.pack_start (task_entry, false, true, 0);
+            //  layout.pack_start (task_entry, false, true, 0);
             this.add (layout);
 
             task_entry.margin_start = 10;
@@ -947,11 +957,6 @@ namespace Agenda {
 
         public bool key_down_event (Gdk.EventKey e) {
             switch (e.keyval) {
-                case Gdk.Key.Escape:
-                    if (!task_view.is_editing) {
-                        main_quit ();
-                    }
-                    break;
                 case Gdk.Key.Delete:
                     if (!(task_entry.has_focus || task_view.is_editing || description_view.has_focus)) {
                         task_view.remove_selected_tasks ();
@@ -994,16 +999,19 @@ namespace Agenda {
                 showingTaskEntry = true;
                 task_view.reorderable = true;
             }
-                
+
+            task_view.hide();
+            task_view.show_all();
+            this.entrada.show_button();                
         }
 
         void show_welcome () {
-            agenda_welcome.show ();
+            //agenda_welcome.show ();
             
         }
 
         void hide_welcome () {
-            agenda_welcome.hide ();
+            //agenda_welcome.hide ();
         }
 
         public override bool configure_event (Gdk.EventConfigure event) {
