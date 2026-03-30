@@ -42,6 +42,7 @@ namespace Agenda {
             headers_visible = false;
             enable_search = false;
             hexpand = true;
+            can_focus = false;
             valign = Gtk.Align.FILL;
             reorderable = true;
 
@@ -99,6 +100,7 @@ namespace Agenda {
                 debug ("Editing started");
                 is_editing = true;
                 text_editing_started();
+                get_selection ().unselect_all ();
             });
 
             text.editing_canceled.connect ( () => {

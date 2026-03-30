@@ -416,7 +416,6 @@ namespace Agenda {
             descriptionButton.hide();
             description_view.grab_focus();
             scrolled_window.get_vadjustment().set_value(0);
-            print("Adicionando descrição\n");
         }
 
         private HashMap<int, bool> waiting_one_milisecond = new HashMap<int, bool>();
@@ -483,7 +482,9 @@ namespace Agenda {
             entrada.on_get_focus.connect (() => {
                 remove_accelerators_copy();
                 Timeout.add (50, () => {   
-                    scrolled_window.get_vadjustment().set_value(10000);
+                    scrolled_window.get_vadjustment().set_value(
+                        scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size()
+                    );
                     print("Entrada pegando foco\n");
                     return false;
                 });
@@ -514,7 +515,7 @@ namespace Agenda {
                 stack.push(task);
                 load_list();
                 //  scrolled_window.get_vadjustment().set_value(0);
-                print("Entrando em subtarefa\n");
+                //  print("Entrando em subtarefa\n");
             });
 
             task_list.task_edited.connect ((task) => {
@@ -564,6 +565,11 @@ namespace Agenda {
 
             scrolled_window.add (scrolled_panel);
 
+            //  scrolled_window.get_vadjustment().changed.connect (() => {
+            //      print("Foi alterado para " + scrolled_window.get_vadjustment().get_value().to_string() + "\n");
+            //      scrolled_window.get_vadjustment().value = scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size();
+            //  });
+
             //  task_view.on_select.connect((first_selected_task_position, last_selected_task_position) => {
             //      if (!auto_scroll_on_selection)
             //          return;
@@ -594,13 +600,13 @@ namespace Agenda {
 
             task_view.taskview_activated.connect(save_vertical_scroll);
             
-            task_view.focus_in_event.connect((w,e) => {
-                Timeout.add (50, () => {
-                    restore_vertical_scroll();
-                    return false;
-                }); 
-                return false;
-            });
+            //  task_view.focus_in_event.connect((w,e) => {
+            //      Timeout.add (50, () => {
+            //          restore_vertical_scroll();
+            //          return false;
+            //      }); 
+            //      return false;
+            //  });
 
             task_view.text_editing_started.connect(() => {
                 Timeout.add (1, () => {
@@ -615,7 +621,8 @@ namespace Agenda {
         }
 
         private void save_vertical_scroll() {
-            openTask.scroll = scrolled_window.vadjustment.value;               
+            openTask.scroll = scrolled_window.get_vadjustment().get_value();   
+            entrada.show_button();            
         }
 
         private void restore_vertical_scroll() { 
@@ -663,11 +670,17 @@ namespace Agenda {
             auto_scroll_on_selection = false;
             task_view.set_selected_tasks(list);
 
-            Timeout.add (1000, () => {
+            Idle.add (() => {
                 scrolled_window.get_vadjustment().set_value(from_task.scroll);
                 print("Scroll da volta\n");
                 return false;
-            });                          
+            });
+
+            //  Timeout.add (50, () => {
+            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
+            //      print("Scroll da volta\n");
+            //      return false;
+            //  });                          
         }
 
         private void search_tasks () {            
@@ -852,15 +865,18 @@ namespace Agenda {
             history_list.add_item (task.title);
             task_entry.text = "";
             broadcast_task(task, openTask);
-        }
-
-        public void create_task_view(Task task) {
-            task_list.append_task (task);    
-            Timeout.add (100, () => {                
-                scrolled_window.get_vadjustment().set_value(10000);
+              
+            Timeout.add (180, () => {                
+                scrolled_window.get_vadjustment().set_value(
+                    scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size()
+                );
                 print("Criando nova tarefa\n");
                 return false;
             });
+        }
+
+        public void create_task_view(Task task) {
+            task_list.append_task (task);  
             update ();        
         }
 
@@ -966,7 +982,13 @@ namespace Agenda {
 
             task_view.hide();
             task_view.show_all();
-            this.entrada.show_button();                
+            this.entrada.show_button(); 
+              
+            //  Timeout.add (100, () => {                
+            //      scrolled_window.get_vadjustment().set_value(100);
+            //      print("Criando nova tarefa\n");
+            //      return false;
+            //  });         
         }
 
         void show_welcome () {
