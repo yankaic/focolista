@@ -416,6 +416,7 @@ namespace Agenda {
             descriptionButton.hide();
             description_view.grab_focus();
             scrolled_window.get_vadjustment().set_value(0);
+            print("Adicionando descrição\n");
         }
 
         private HashMap<int, bool> waiting_one_milisecond = new HashMap<int, bool>();
@@ -483,12 +484,19 @@ namespace Agenda {
                 remove_accelerators_copy();
                 Timeout.add (50, () => {   
                     scrolled_window.get_vadjustment().set_value(10000);
+                    print("Entrada pegando foco\n");
                     return false;
                 });
             });
 
             entrada.on_lose_focus.connect (() => {
                 add_accelerators_copy();
+            });
+
+            entrada.on_spacer_focus.connect (() => {               
+                Gtk.TreeSelection selected;
+                selected = task_view.get_selection ();
+                selected.unselect_all ();
             });
 
             task_view.focus_out_event.connect ((e) => {
@@ -503,9 +511,10 @@ namespace Agenda {
 
             task_list.open_task.connect ((task) => {
                 task.scroll = scrolled_window.get_vadjustment().get_value();
-                scrolled_window.get_vadjustment().set_value(0);
                 stack.push(task);
                 load_list();
+                //  scrolled_window.get_vadjustment().set_value(0);
+                print("Entrando em subtarefa\n");
             });
 
             task_list.task_edited.connect ((task) => {
@@ -606,11 +615,12 @@ namespace Agenda {
         }
 
         private void save_vertical_scroll() {
-            openTask.scroll = scrolled_window.vadjustment.value;
+            openTask.scroll = scrolled_window.vadjustment.value;               
         }
 
         private void restore_vertical_scroll() { 
-            scrolled_window.vadjustment.set_value(openTask.scroll);
+            //  scrolled_window.vadjustment.set_value(openTask.scroll);
+            //  print("Restaurando local do scroll\n");
         }
 
         public void update_task(Task task) {
@@ -652,24 +662,12 @@ namespace Agenda {
             list += from_task;
             auto_scroll_on_selection = false;
             task_view.set_selected_tasks(list);
-            
-            //  Timeout.add (1, () => {
-            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
-            //      return false;
-            //  });
-            //  Timeout.add (50, () => {
-            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
-            //      return false;
-            //  });
-            //  Timeout.add (100, () => {
-            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
-            //      return false;
-            //  });
-            //  Timeout.add (101, () => {                
-            //      auto_scroll_on_selection = true; 
-            //      return false;
-            //  });  
-            scrolled_window.get_vadjustment().set_value(0);                          
+
+            Timeout.add (1000, () => {
+                scrolled_window.get_vadjustment().set_value(from_task.scroll);
+                print("Scroll da volta\n");
+                return false;
+            });                          
         }
 
         private void search_tasks () {            
@@ -860,6 +858,7 @@ namespace Agenda {
             task_list.append_task (task);    
             Timeout.add (100, () => {                
                 scrolled_window.get_vadjustment().set_value(10000);
+                print("Criando nova tarefa\n");
                 return false;
             });
             update ();        

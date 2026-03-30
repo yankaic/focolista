@@ -9,6 +9,7 @@ namespace Agenda {
         public bool has_focus;
         public signal void on_get_focus();
         public signal void on_lose_focus();
+        public signal void on_spacer_focus();
         public signal void commit(string text);
 
         public Entrada () {
@@ -84,6 +85,7 @@ namespace Agenda {
             spacer.button_press_event.connect((event) => {
                 // Força perda de foco do Entry
                 spacer.grab_focus();
+                on_spacer_focus();
                 return false;
             });
         }
