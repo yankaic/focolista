@@ -216,6 +216,7 @@ namespace Agenda {
             task_view.margin_top = 6;
             //  task_view.expand = true;
             task_entry = new Gtk.Entry ();
+            entrada = new Entrada();
             
             description_view = new Gtk.TextView ();
             description_view.set_wrap_mode (Gtk.WrapMode.WORD_CHAR);
@@ -477,52 +478,13 @@ namespace Agenda {
             completion.set_model (history_list);
             completion.set_text_column (0);
 
-            task_entry.set_completion (completion);
-
-            task_entry.activate.connect (append_task);
-            task_entry.icon_press.connect (append_task);
-
-            task_entry.focus_in_event.connect ((e) => {
+            entrada.commit.connect (create_tasks_from_string);
+            entrada.on_get_focus.connect (() => {
                 remove_accelerators_copy();
-                return false;
             });
 
-            task_entry.focus_out_event.connect ((e) => {
+            entrada.on_lose_focus.connect (() => {
                 add_accelerators_copy();
-                return false;
-            });
-
-            task_entry.changed.connect (() => {
-                var str = task_entry.get_text ();
-                if ( str == "" ) {
-                    task_entry.set_icon_from_icon_name (
-                        Gtk.EntryIconPosition.SECONDARY, null);
-                } else {
-                    task_entry.set_icon_from_icon_name (
-                        Gtk.EntryIconPosition.SECONDARY, "list-add-symbolic");
-                }
-            });
-
-            task_entry.populate_popup.connect ((menu) => {
-                Gtk.TreeIter iter;
-                bool valid = history_list.get_iter_first (out iter);
-                var separator = new Gtk.SeparatorMenuItem ();
-                var item_clear_history = new Gtk.MenuItem.with_label (_("Clear history"));
-
-                menu.insert (separator, 6);
-                menu.insert (item_clear_history, 7);
-
-                item_clear_history.activate.connect (() => {
-                    history_list.clear ();
-                });
-
-                if (valid) {
-                    item_clear_history.set_sensitive (true);
-                } else {
-                    item_clear_history.set_sensitive (false);
-                }
-
-                menu.show_all ();
             });
 
             task_view.focus_out_event.connect ((e) => {
@@ -580,7 +542,6 @@ namespace Agenda {
                 Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC);
 
             agenda_welcome.expand = true;
-            entrada = new Entrada();
 
             Gtk.Box scrolled_panel = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
             scrolled_panel.pack_start(description_view, false, true, 0);
@@ -610,7 +571,6 @@ namespace Agenda {
             layout = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
             layout.pack_start (search_revealer, false, true, 0);
             layout.pack_start (scrolled_window, true, true, 0);
-            //  layout.pack_start (task_entry, false, true, 0);
             this.add (layout);
 
             task_entry.margin_start = 10;
@@ -619,7 +579,6 @@ namespace Agenda {
             task_entry.margin_bottom = 10;
             search_revealer.show();
 
-            task_entry.grab_focus ();
             task_view.taskview_activated.connect(save_vertical_scroll);
             
             task_view.focus_in_event.connect((w,e) => {
@@ -866,10 +825,6 @@ namespace Agenda {
             emit_refresh_window(Agenda.copy_source);
         }
 
-        public void append_task () {
-            create_tasks_from_string(task_entry.text);
-        }
-
         private void create_tasks_from_string(string tasks){
             string[] lines = tasks.split("\n");
             Task[] new_tasks = {};
@@ -883,6 +838,7 @@ namespace Agenda {
             }
 
             Timeout.add (150, () => {
+                update();
                 task_view.set_selected_tasks(new_tasks);
                 return false;
             }); 
@@ -958,13 +914,13 @@ namespace Agenda {
         public bool key_down_event (Gdk.EventKey e) {
             switch (e.keyval) {
                 case Gdk.Key.Delete:
-                    if (!(task_entry.has_focus || task_view.is_editing || description_view.has_focus)) {
+                    if (!(entrada.has_focus || task_view.is_editing || description_view.has_focus)) {
                         task_view.remove_selected_tasks ();
                         update ();
                     }
                     break;
                 case Gdk.Key.BackForward:
-                    if (!task_entry.has_focus && !task_view.is_editing) {
+                    if (!entrada.has_focus && !task_view.is_editing) {
                         update ();
                     }
                     break;
@@ -990,12 +946,12 @@ namespace Agenda {
             }
 
             if (openTask.id == SEARCH_TASK.id && showingTaskEntry) {
-                task_entry.hide();
+                entrada.hide();
                 showingTaskEntry = false;
                 task_view.reorderable = false;
             }
             else {
-                task_entry.show();
+                entrada.show();
                 showingTaskEntry = true;
                 task_view.reorderable = true;
             }

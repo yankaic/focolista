@@ -4,11 +4,17 @@ namespace Agenda {
 
         private Gtk.Button add_button;
         private Gtk.Entry input;
-        private Gtk.EventBox spacer;        
+        private Gtk.EventBox spacer; 
+        
+        public bool has_focus;
+        public signal void on_get_focus();
+        public signal void on_lose_focus();
+        public signal void commit(string text);
 
         public Entrada () {
             // Configuração do VBox
             Object (orientation: Gtk.Orientation.VERTICAL, spacing: 0);
+            has_focus = false;
 
             // Botão
             add_button = new Gtk.Button.with_label("＋  Adicionar nova tarefa");
@@ -30,6 +36,13 @@ namespace Agenda {
             input.margin_start = 8;
             input.margin_end = 8;
             input.get_style_context().add_class("task-entry");
+            input.activate.connect(() => {
+                commit(input.text);                
+                Timeout.add (150, () => {                
+                    show_entry();
+                    return false;
+                });
+            });
 
             // Adiciona ao container
             this.pack_start(add_button, false, false, 0);
@@ -79,11 +92,16 @@ namespace Agenda {
             add_button.hide();
             input.show();
             input.grab_focus();
+            has_focus = true;
+            on_get_focus();
         }
 
         public void show_button() {
             input.hide();
+            input.text = "";
             add_button.show();
+            has_focus = false;
+            on_lose_focus();
         }
     }
 }
