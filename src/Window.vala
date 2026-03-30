@@ -481,6 +481,10 @@ namespace Agenda {
             entrada.commit.connect (create_tasks_from_string);
             entrada.on_get_focus.connect (() => {
                 remove_accelerators_copy();
+                Timeout.add (50, () => {   
+                    scrolled_window.get_vadjustment().set_value(10000);
+                    return false;
+                });
             });
 
             entrada.on_lose_focus.connect (() => {
@@ -551,22 +555,22 @@ namespace Agenda {
 
             scrolled_window.add (scrolled_panel);
 
-            task_view.on_select.connect((first_selected_task_position, last_selected_task_position) => {
-                if (!auto_scroll_on_selection)
-                    return;
+            //  task_view.on_select.connect((first_selected_task_position, last_selected_task_position) => {
+            //      if (!auto_scroll_on_selection)
+            //          return;
                 
-                double description_height = 0;                
-                if (description_view.get_visible())
-                    description_height = description_view.get_allocated_height() + description_view.margin_top + description_view.margin_bottom;
+            //      double description_height = 0;                
+            //      if (description_view.get_visible())
+            //          description_height = description_view.get_allocated_height() + description_view.margin_top + description_view.margin_bottom;
                 
-                bool needs_to_go_down = description_height + last_selected_task_position > scrolled_window.get_vadjustment().get_value() + scrolled_window.get_allocated_height();
-                  if (needs_to_go_down)
-                    scrolled_window.get_vadjustment().set_value(last_selected_task_position - scrolled_window.get_allocated_height() + description_height);
+            //      bool needs_to_go_down = description_height + last_selected_task_position > scrolled_window.get_vadjustment().get_value() + scrolled_window.get_allocated_height();
+            //        if (needs_to_go_down)
+            //          scrolled_window.get_vadjustment().set_value(last_selected_task_position - scrolled_window.get_allocated_height() + description_height);
 
-                bool needs_to_go_up = description_height + first_selected_task_position < scrolled_window.get_vadjustment().get_value();
-                  if (needs_to_go_up) 
-                    scrolled_window.get_vadjustment().set_value(first_selected_task_position + description_height);
-            });
+            //      bool needs_to_go_up = description_height + first_selected_task_position < scrolled_window.get_vadjustment().get_value();
+            //        if (needs_to_go_up) 
+            //          scrolled_window.get_vadjustment().set_value(first_selected_task_position + description_height);
+            //  });
 
             layout = new Gtk.Box(Gtk.Orientation.VERTICAL, 0);
             layout.pack_start (search_revealer, false, true, 0);
@@ -649,22 +653,23 @@ namespace Agenda {
             auto_scroll_on_selection = false;
             task_view.set_selected_tasks(list);
             
-            Timeout.add (1, () => {
-                scrolled_window.get_vadjustment().set_value(from_task.scroll);
-                return false;
-            });
-            Timeout.add (50, () => {
-                scrolled_window.get_vadjustment().set_value(from_task.scroll);
-                return false;
-            });
-            Timeout.add (100, () => {
-                scrolled_window.get_vadjustment().set_value(from_task.scroll);
-                return false;
-            });
-            Timeout.add (101, () => {                
-                auto_scroll_on_selection = true; 
-                return false;
-            });                               
+            //  Timeout.add (1, () => {
+            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
+            //      return false;
+            //  });
+            //  Timeout.add (50, () => {
+            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
+            //      return false;
+            //  });
+            //  Timeout.add (100, () => {
+            //      scrolled_window.get_vadjustment().set_value(from_task.scroll);
+            //      return false;
+            //  });
+            //  Timeout.add (101, () => {                
+            //      auto_scroll_on_selection = true; 
+            //      return false;
+            //  });  
+            scrolled_window.get_vadjustment().set_value(0);                          
         }
 
         private void search_tasks () {            
@@ -852,8 +857,12 @@ namespace Agenda {
         }
 
         public void create_task_view(Task task) {
-            task_list.append_task (task);
-            update ();
+            task_list.append_task (task);    
+            Timeout.add (100, () => {                
+                scrolled_window.get_vadjustment().set_value(10000);
+                return false;
+            });
+            update ();        
         }
 
         public bool privacy_mode_off () {
