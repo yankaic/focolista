@@ -42,7 +42,6 @@ namespace Agenda {
             headers_visible = false;
             enable_search = false;
             hexpand = true;
-            can_focus = false;
             valign = Gtk.Align.FILL;
             reorderable = true;
 

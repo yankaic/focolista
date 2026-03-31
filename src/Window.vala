@@ -865,14 +865,25 @@ namespace Agenda {
             history_list.add_item (task.title);
             task_entry.text = "";
             broadcast_task(task, openTask);
+            scrolled_window.get_vadjustment().set_value(
+                scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size()
+            );
+
+            //  Idle.add (() => {
+            //      scrolled_window.get_vadjustment().set_value(
+            //          scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size()
+            //      );
+            //      print("Criando nova tarefa\n");
+            //      return false;
+            //  });
               
-            Timeout.add (180, () => {                
-                scrolled_window.get_vadjustment().set_value(
-                    scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size()
-                );
-                print("Criando nova tarefa\n");
-                return false;
-            });
+            //  Timeout.add (100, () => {                
+            //      scrolled_window.get_vadjustment().set_value(
+            //          scrolled_window.get_vadjustment().get_upper() - scrolled_window.get_vadjustment().get_page_size()
+            //      );
+            //      print("Criando nova tarefa\n");
+            //      return false;
+            //  });
         }
 
         public void create_task_view(Task task) {
@@ -982,6 +993,7 @@ namespace Agenda {
 
             task_view.hide();
             task_view.show_all();
+            task_view.grab_focus();
             this.entrada.show_button(); 
               
             //  Timeout.add (100, () => {                
