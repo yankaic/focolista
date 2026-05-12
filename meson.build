@@ -46,6 +46,7 @@ subdir('test')
 agenda_client_sources = files(
     'src/Agenda.vala',
     'src/Window.vala',
+    'src/Entrada.vala',
     'src/Widgets/TaskView.vala',
     'src/Backend/BackendInterface.vala',
     'src/Backend/SqliteBackend.vala',
