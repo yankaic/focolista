@@ -191,7 +191,7 @@ namespace Agenda {
         }
 
         public void drop (Task task, Task parent){
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             parent.subtasksCount--;
             deleteStatement.bind_text (1, datetime);
             deleteStatement.bind_text (2, datetime);
@@ -202,7 +202,7 @@ namespace Agenda {
         }
 
         public void create (Task task, Task parent){
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             parent.subtasksCount++;
 
             sequenceStatement.step();
@@ -227,7 +227,7 @@ namespace Agenda {
         }
 
         public void update(Task task){
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             updateStatement.bind_text (1, task.title);
             updateStatement.bind_text (2, datetime);
             updateStatement.bind_int (3, task.id);
@@ -236,7 +236,7 @@ namespace Agenda {
         }
 
         public void mark(Task task){
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             markStatement.bind_text (1, task.complete? datetime: null);
             markStatement.bind_text (2, datetime);
             markStatement.bind_int (3, task.id);
@@ -245,7 +245,7 @@ namespace Agenda {
         }
 
         public void reorder(Task task, Task parent){
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             reorderStatement.bind_int (1, task.position);
             reorderStatement.bind_text (2, datetime);
             reorderStatement.bind_int (3, parent.id);
@@ -255,7 +255,7 @@ namespace Agenda {
         }
 
         public void changeParent(Task task, Task old_parent, Task new_parent) {
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             old_parent.subtasksCount--;
             new_parent.subtasksCount++;
             moveStatement.bind_int (1, new_parent.id);
@@ -269,7 +269,7 @@ namespace Agenda {
 
         public void create_link (Task task, Task new_parent) {
             new_parent.subtasksCount++;
-            string datetime = new DateTime.now_local ().to_string();
+            string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
             insertConnectionStatement.bind_int (1, new_parent.id);
             insertConnectionStatement.bind_int (2, task.id);
             insertConnectionStatement.bind_int (3, new_parent.subtasksCount);
@@ -316,7 +316,7 @@ namespace Agenda {
             if (!waiting_one_second) {
                 waiting_one_second = true;
                 Timeout.add (1000, () => {
-                    string datetime = new DateTime.now_local ().to_string();
+                    string datetime = new DateTime.now_local ().format ("%Y-%m-%d %H:%M");
                     updateDescriptionStatement.bind_text (1, task.description);
                     updateDescriptionStatement.bind_text (2, datetime);
                     updateDescriptionStatement.bind_int (3, task.id);
