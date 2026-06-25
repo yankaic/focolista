@@ -287,6 +287,9 @@ namespace Agenda {
             .task-entry{
                 font-size: 1.05em;
             }
+            entry {
+                font-size: 1.05em;
+            }
             .debug-red {
                 background-color: red;
             }
