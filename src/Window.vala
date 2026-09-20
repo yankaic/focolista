@@ -998,12 +998,11 @@ namespace Agenda {
             task_view.show_all();
             task_view.grab_focus();
             this.entrada.show_button(); 
-              
-            //  Timeout.add (100, () => {                
-            //      scrolled_window.get_vadjustment().set_value(100);
-            //      print("Criando nova tarefa\n");
-            //      return false;
-            //  });         
+
+            Idle.add (() => {
+                task_view.grab_focus();
+                return false;
+            });          
         }
 
         void show_welcome () {
